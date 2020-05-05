@@ -50,13 +50,25 @@ pipeline {
 				}
 			}
 		}
-		*/
 		// This stage executes the UniProtUpdate Perl script. 
-		stage('Main: GO Update'){
+		stage('Main: UniProt Update'){
 			steps {
 				script{
 					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
 						sh "perl ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot_xml2sql_isoform.pl -db ${env.GK_CENTRAL} -host ${env.CURATOR_SERVER} -user $user -pass $pass > uniprot.out 2> uniprot.err"
+					}
+				}
+			}
+		}
+		*/
+		// This stage backs up the gk_central database after modification.
+		stage('Post: Backup gk_central after modifications'){
+			steps{
+				script{
+					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+						def central_after_update_uniprot_update_dump = "${env.GK_CENTRAL}_${currentRelease}_after_uniprot_update.dump"
+						sh "mysqldump -u$user -p$pass -h${env.CURATOR_SERVER} ${env.GK_CENTRAL} > $central_after_update_uniprot_update_dump"
+						sh "gzip -f $central_after_update_uniprot_update_dump"
 					}
 				}
 			}
