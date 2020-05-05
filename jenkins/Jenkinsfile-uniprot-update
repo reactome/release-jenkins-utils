@@ -28,6 +28,7 @@ pipeline {
 				}
 			}
 		}
+		/*
 		// This stage backs up the gk_central database before it is modified.
 		stage('Setup: Back up gk_central before modifications'){
 			steps{
@@ -40,12 +41,13 @@ pipeline {
 				}
 			}
 		}
+		*/
 		// Download uniprot_sprot.xml.gz and uniprot-reviewed:no.list.gz from UniProt.
 		stage('Setup: Download uniprot_sprot.xml.gz and uniprot-reviewed:no.list.gz'){
 			steps{
 				script{
-					sh "wget -N ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.xml.gz"
-					sh "wget -O uniprot-reviewed:no.list.gz http://www.uniprot.org/uniprot/?query=reviewed%3Ano&compress=yes&format=list"
+				//	sh "wget -N ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.xml.gz"
+					sh "wget -O uniprot-reviewed:no.list.gz 'http://www.uniprot.org/uniprot/?query=reviewed%3Ano&compress=yes&format=list'"
 				}
 			}
 		}
