@@ -56,7 +56,7 @@ pipeline {
 			steps {
 				script{
 					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-						sh "perl ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot_xml2sql_isoform.pl -db ${env.GK_CENTRAL} -host ${env.CURATOR_SERVER} -user $user -pass $pass"
+						sh "perl ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot_xml2sql_isoform.pl -db ${env.GK_CENTRAL} -host ${env.CURATOR_SERVER} -user $user -pass $pass > uniprot.out 2> uniprot.err"
 					}
 				}
 			}
