@@ -1,5 +1,5 @@
 import groovy.json.JsonSlurper
-// This Jenkinsfile is used by Jenkins to run the 'UniProtUpdate' step of Reactome's release.
+// This Jenkinsfile is used by Jenkins to run the 'UniProt Update' step of Reactome's release.
 // This step synchronizes Reactome's database with UniProt. 
 // It requires that the 'ConfirmReleaseConfigs' step has been run successfully before it can be run.
 def currentRelease
@@ -91,15 +91,11 @@ pipeline {
 			steps{
 				script{
 					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${currentRelease}/uniprot_update"
-					sh "mkdir -p databases/"
-					sh "mkdir -p data/"
-					sh "mkdir -p logs/"
+					sh "mkdir -p databases/ data/ logs/"
 					sh "mv --backup=numbered *_${currentRelease}_*.dump.gz databases/"
 					sh "mv *.txt data/"
 					sh "mv trembl_to_update.acc data/"
-					sh "mv uniprot-reviewed:no.list data/"
-					sh "mv uniprot_sprot.xml data/"
-					sh "mv uniprot.wiki data/"
+					sh "mv {uniprot.wiki,uniprot_sprot.xml,uniprot-reviewed:no.list} data/"
 					sh "gzip data/*"
 					sh "mv uniprot.* logs/"
 					sh "gzip logs/*"
