@@ -71,7 +71,7 @@ pipeline {
 				}
 			}
 		}
-		// This stage emails the uniprit.wiki file to the default recipients list.
+		// This stage emails the uniprot.wiki file to the default recipients list.
 		stage('Post: Email UniProt.wiki file'){
 			steps{
 				script{
