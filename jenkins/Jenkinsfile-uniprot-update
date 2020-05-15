@@ -40,6 +40,7 @@ pipeline {
 				}
 			}
 		}
+		/*
 		// Download uniprot_sprot.xml.gz and uniprot-reviewed:no.list.gz from UniProt.
 		stage('Setup: Download uniprot_sprot.xml.gz and uniprot-reviewed:no.list.gz'){
 			steps{
@@ -49,12 +50,15 @@ pipeline {
 				}
 			}
 		}
+		*/
 		// This stage executes the UniProt Update Perl script. 
 		stage('Main: UniProt Update'){
 			steps {
 				script{
-					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-						sh "perl ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot_xml2sql_isoform.pl -db ${env.GK_CENTRAL} -host ${env.CURATOR_SERVER} -user $user -pass $pass > uniprot.out 2> uniprot.err"
+					dir("{env.ABS_RELEASE_PATH}/uniprot_update") {
+						withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "perl uniprot_xml2sql_isoform.pl -db ${env.GK_CENTRAL} -host ${env.CURATOR_SERVER} -user $user -pass $pass > uniprot.out 2> uniprot.err"
+						}
 					}
 				}
 			}
