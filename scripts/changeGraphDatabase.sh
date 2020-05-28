@@ -1,3 +1,5 @@
+#!/bin/bash
+set -e
 ## Jenkins user builds the graph db during Release, but Neo4j user is needed to replace graph.db folder at /var/lib/neo4j/data/databases/.
 ## This script changes all necessary permissions from Jenkins to Neo4j beforehand.
 chmod 644 /tmp/graph.db/*
