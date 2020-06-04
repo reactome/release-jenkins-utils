@@ -1,0 +1,92 @@
+import groovy.json.JsonSlurper
+// This Jenkinsfile is used by Jenkins to run the GenerateGraphDatabaseAndAnalysisCore step of Reactome's release.
+// It requires that the OrthoinferenceStableIdentifierHistory step has been run successfully before it can be run.
+def currentRelease
+def previousRelease
+pipeline {
+	agent any
+
+	stages {
+  		// This stage checks that an upstream project, BioModels, was run successfully for its last build.
+		stage('Check BioModels build succeeded'){
+			steps{
+				script{
+					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
+					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
+					// This queries the Jenkins API to confirm that the most recent build of BioModels was successful.
+					def BioModelsStatusUrl = httpRequest authentication: 'jenkinsKey', validResponseCodes: "${env.VALID_RESPONSE_CODES}", url: "${env.JENKINS_JOB_URL}/job/${currentRelease}/job/Relational-Database-Updates/job/BioModels/lastBuild/api/json"
+					if (BioModelsStatusUrl.getStatus() == 404) {
+						error("BioModels has not yet been run. Please complete a successful build.")
+					} else {
+						def BioModelsJson = new JsonSlurper().parseText(BioModelsStatusUrl.getContent())
+						if(BioModelsJson['result'] != "SUCCESS"){
+							error("Most recent BioModels build status: " + BioModelsJson['result'] + ". Please complete a successful build.")
+						}
+					}
+				}
+			}
+		}
+		stage('Setup: Create reactome database from release_current') {
+			steps{
+				script{
+					withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]) {
+						sh "mysql -u$user -p$pass -e \'drop database if exists ${env.REACTOME}; create database ${env.REACTOME}\'"
+						sh "mysqldump --opt -u$user -p$pass ${env.RELEASE_CURRENT} | mysql -u$user -p$pass ${env.REACTOME}"
+					}
+				}
+			}
+		}
+		// This stage generates the graph database using the graph-importer module, and replaces the current graph db with it.
+		stage('Setup: Generate Graph Database'){
+			steps{
+				script{
+					sh "cp -f scripts/changeGraphDatabase.sh ${env.JENKINS_HOME_PATH}"
+					sh "chmod 700 ${env.JENKINS_HOME_PATH}changeGraphDatabase.sh"
+					cloneOrPullGitRepo("graph-importer")
+					dir("graph-importer"){
+						sh "mvn clean compile assembly:single"
+						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "java -jar target/GraphImporter-jar-with-dependencies.jar --name ${env.REACTOME} --user $user --password $pass --neo4j ./graph.db --interactions"
+							sh "tar -zcf reactome.graphdb.tgz graph.db/"
+							sh "mv graph.db /tmp/"
+							sh "sudo service tomcat7 stop"
+							sh "sudo service neo4j stop"
+							// This static script adjusts permissions of the graph.db folder and moves it to /var/lib/neo4j/data/databases/.
+							sh "sudo bash ${env.JENKINS_HOME_PATH}changeGraphDatabase.sh"
+							sh "sudo service neo4j start"
+							sh "sudo service tomcat7 start"
+							sh "rm ${env.JENKINS_HOME_PATH}changeGraphDatabase.sh"
+						}
+					}
+				}
+			}			
+		}
+		stage('Setup: Generate Analysis.bin file'){
+			steps{
+				script{
+					cloneOrPullGitRepo("analysis-core")
+					dir("analysis-core"){
+						def analysisBinName = "analysis_v${currentRelease}.bin"
+						sh "mvn clean compile assembly:single"
+						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "java -jar target/analysis-core-jar-with-dependencies.jar --user $user --password $pass --output ./${analysisBinName} --verbose"
+						}
+						sh "cp ${analysisBinName} ${env.ANALYSIS_SERVICE_INPUT_ABS_PATH}/"
+						sh "ln -sf ${env.ANALYSIS_SERVICE_INPUT_ABS_PATH}/${analysisBinName} ${env.ANALYSIS_SERVICE_INPUT_ABS_PATH}/analysis.bin"
+						sh "sudo service tomcat7 stop"
+						sh "sudo service tomcat7 start"
+					}
+				}
+			}
+		}
+	}
+}
+// Utility function that checks if a git directory exists. If not, it is cloned.
+def cloneOrPullGitRepo(String repoName) {
+	// This method is deceptively named -- it can also check if a directory exists
+	if(!fileExists(repoName)) {
+		sh "git clone ${env.REACTOME_GITHUB_BASE_URL}/${repoName}"
+	} else {
+		sh "cd ${repoName}; git pull"
+	}
+}
