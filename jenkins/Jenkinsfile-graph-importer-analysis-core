@@ -31,10 +31,10 @@ pipeline {
 				script{
 					withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]) {
 						def release_current_final_dump = "${env.RELEASE_CURRENT}_${currentRelease}_final.dump"
-						sh "mysqldump -u$user -p$pass ${env.RELEASE_CURRENT} > $release_current_final_dump"
-						sh "gzip -f $release_current_final_dump"
+						sh "mysqldump -u$user -p$pass ${env.RELEASE_CURRENT} > ${release_current_final_dump}"
+						sh "gzip -f ${release_current_final_dump}"
 						sh "mysql -u$user -p$pass -e \'drop database if exists ${env.REACTOME}; create database ${env.REACTOME}\'"
-						sh "zcat release_current_final_dump.gz | mysql -u$user -p$pass ${env.REACTOME}"
+						sh "zcat ${release_current_final_dump}.gz | mysql -u$user -p$pass ${env.REACTOME}"
 					}
 				}
 			}
