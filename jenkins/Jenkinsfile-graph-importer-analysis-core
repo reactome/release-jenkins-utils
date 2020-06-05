@@ -26,6 +26,7 @@ pipeline {
 				}
 			}
 		}
+		/*
 		stage('Setup: Create reactome database from release_current') {
 			steps{
 				script{
@@ -64,6 +65,22 @@ pipeline {
 				}
 			}			
 		}
+		*/
+		// This stage runs the graph-qa script.
+		stage('Post: Run graph-qa'){
+			steps{
+				script{
+					cloneOrPullGitRepo("graph-qa")
+					dir("graph-qa"){
+						sh "mvn clean compile assembly:single"
+						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "java -jar target/graph-qa-jar-with-dependencies.jar -u $user -p  $pass --verbose"
+						}
+					}
+				}
+			}
+		}
+		/*
 		stage('Setup: Generate Analysis.bin file'){
 			steps{
 				script{
@@ -82,6 +99,7 @@ pipeline {
 				}
 			}
 		}
+		*/
 	}
 }
 // Utility function that checks if a git directory exists. If not, it is cloned.
