@@ -97,7 +97,6 @@ pipeline {
 				}
 			}
 		}
-		*/
 		// This stage emails the contents of the GraphQA_Summary_vXX.csv, and informs that the graph database is now on release. 
 		stage('Post: Email graph-qa output'){
 			steps{
@@ -107,9 +106,34 @@ pipeline {
 						to: '$DEFAULT_RECIPIENTS',
 						from: "${env.JENKINS_RELEASE_EMAIL}",
 						subject: "v${currentRelease} graph database available on release.reactome.org",
-						attachmentsPattern: "**/graph-qa/reports/GraphQA_Summary_v${currentRelease}.csv"
-						
 					)
+				}
+			}
+		}
+		*/
+		stage('Post: Archive Outputs'){
+			steps{
+				script{
+					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${currentRelease}/graph_db_analysis_core"
+					sh "mkdir -p databases/ data/ logs/ reports/"
+					sh "mv --backup=numbered *_${currentRelease}_*.dump.gz databases/"
+					sh "mv --backup=numbered graph-importer/reactome.graphdb.tgz databases/"
+					sh "mv graph-importer/logs/* logs/"
+					sh "mv graph-importer/parser-messages.txt logs/"
+					sh "mv analysis-core/logs/* logs/"
+					sh "mv graph-qa/logs/* logs/"
+					sh "mv analysis-core/analysis_v${currentRelease}.bin data/"
+					sh "mv /tmp/intact-micluster.txt data/"
+					sh "mv graph-qa/reports/* reports/"
+					sh "gzip data/* logs/* reports/*"
+					sh "aws s3 --no-progress --recursive cp databases/ $s3Path/databases/"
+					sh "aws s3 --no-progress --recursive cp logs/ $s3Path/logs/"
+					sh "aws s3 --no-progress --recursive cp data/ $s3Path/data/"
+					sh "aws s3 --no-progress --recursive cp reports/ $s3Path/reports/"
+					sh "rm -r databases logs data reports"
+					sh "rm -rf graph-importer*"
+					sh "rm -rf analysis-core*"
+					sh "rm -rf graph-qa*"
 				}
 			}
 		}
