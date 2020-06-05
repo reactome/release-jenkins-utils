@@ -107,6 +107,7 @@ pipeline {
 						to: '$DEFAULT_RECIPIENTS',
 						from: "${env.JENKINS_RELEASE_EMAIL}",
 						subject: "v${currentRelease} graph database available on release.reactome.org",
+						attachmentsPattern: "**/graph-qa/reports/GraphQA_Summary_v${currentRelease}.csv"
 					)
 				}
 			}
