@@ -65,7 +65,6 @@ pipeline {
 				}
 			}			
 		}
-		*/
 		// This stage runs the graph-qa script.
 		stage('Post: Run graph-qa'){
 			steps{
@@ -80,7 +79,6 @@ pipeline {
 				}
 			}
 		}
-		/*
 		stage('Setup: Generate Analysis.bin file'){
 			steps{
 				script{
@@ -100,6 +98,21 @@ pipeline {
 			}
 		}
 		*/
+		// This stage emails the contents of the GraphQA_Summary_vXX.csv, and informs that the graph database is now on release. 
+		stage('Post: Email graph-qa output'){
+			steps{
+				script{
+					emailext (
+						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${currentRelease}. The relational database updates have completed and the graph database has been generated. It should be visible at https://release.reactome.org. This is NOT the final release email. Current release data (v${currentRelease}) data is visible in the details pages, analysis service, and the content service, while the downloadable files, searching, and diagrams are still based on v${previousRelease} data. You can navigate the Pathway Browser as well, though be aware that new/updated diagrams are not yet visbile. Please notify the developer running release if you find any issues. Do NOT reply to this email. \n\nThanks!",
+						to: '$DEFAULT_RECIPIENTS',
+						from: "${env.JENKINS_RELEASE_EMAIL}",
+						subject: "v${currentRelease} graph database available on release.reactome.org",
+						attachmentsPattern: "**/graph-qa/reports/GraphQA_Summary_v${currentRelease}.csv"
+						
+					)
+				}
+			}
+		}
 	}
 }
 // Utility function that checks if a git directory exists. If not, it is cloned.
