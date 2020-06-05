@@ -110,7 +110,6 @@ pipeline {
 				}
 			}
 		}
-		*/
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
@@ -137,6 +136,7 @@ pipeline {
 				}
 			}
 		}
+		*/
 	}
 }
 // Utility function that checks if a git directory exists. If not, it is cloned.
