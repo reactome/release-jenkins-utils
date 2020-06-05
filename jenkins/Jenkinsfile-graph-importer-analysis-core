@@ -103,7 +103,7 @@ pipeline {
 			steps{
 				script{
 					emailext (
-						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${currentRelease}. The relational database updates have completed and the graph database has been generated. It should be visible at https://release.reactome.org. This is NOT the final release email. Current release data (v${currentRelease}) data is visible in the details pages, analysis service, and the content service, while the downloadable files, searching, and diagrams are still based on v${previousRelease} data. You can navigate the Pathway Browser as well, though be aware that new/updated diagrams are not yet visible. Please notify the developer running release if you notice any issues. Do NOT reply to this email. \n\nThanks!",
+						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${currentRelease}. The relational database updates have completed and the graph database has been generated. It should be visible at https://release.reactome.org. This is NOT the final release email. Current release data (v${currentRelease}) is visible in: \n- Details pages\n- Analysis service \n- Content service\n Previous release data (v${previousRelease}) is still visible in: \n- Downloadable files \n- Searching -\n Diagrams \nYou can navigate the Pathway Browser as well to see details, though just be aware that new/updated diagrams are not yet visible. Please notify the developer running release if you notice any issues. Do NOT reply to this email. \n\nThanks!",
 						to: '$DEFAULT_RECIPIENTS',
 						from: "${env.JENKINS_RELEASE_EMAIL}",
 						subject: "v${currentRelease} graph database available on release.reactome.org",
