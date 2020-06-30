@@ -33,7 +33,7 @@ pipeline {
 				script{
 					dir("${env.ABS_RELEASE_PATH}/commit_stats_files/"){
 						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-							sh "perl perl commit_stats_files.pl -version ${env.RELEASE_CURRENT} -stats_file_dir ${env.WEBSITE_FILES_UPDATE_ABS_PATH}"
+							sh "perl commit_stats_files.pl -version ${env.RELEASE_CURRENT} -stats_file_dir ${env.WEBSITE_FILES_UPDATE_ABS_PATH}"
 						}
 					}
 				}
