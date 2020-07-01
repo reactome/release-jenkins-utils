@@ -44,6 +44,7 @@ pipeline {
 					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
 						withCredentials([file(credentialsId: 'Config', variable: 'ConfigFile')]){
 							sh "java -Xmx${env.JAVA_MEM_MAX}m -jar release-data-exporter/target/data-exporter*-jar-with-dependencies.jar $ConfigFile"
+							sh "ln -sf output/ archive"
 						}
 					}
 				}
