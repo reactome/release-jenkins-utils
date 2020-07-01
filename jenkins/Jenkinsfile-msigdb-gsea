@@ -1,0 +1,82 @@
+import groovy.json.JsonSlurper
+// This Jenkinsfile is used by Jenkins to run the MSigDB-GSEA step of Reactome's release.
+// It requires that the --- step has been run successfully before it can be run.
+def currentRelease
+def previousRelease
+pipeline {
+	agent any
+
+	stages {
+  		// This stage checks that an upstream project, ---, was run successfully for its last build.
+		stage('Check --- build succeeded'){
+			steps{
+				script{
+					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
+					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
+					/*
+					// This queries the Jenkins API to confirm that the most recent build of OrthoinferenceStableIdentifierHistory was successful.
+					def OrthoinferenceStableIdentifierHistoryStatusUrl = httpRequest authentication: 'jenkinsKey', validResponseCodes: "${env.VALID_RESPONSE_CODES}", url: "${env.JENKINS_JOB_URL}/job/${currentRelease}/job/Relational-Database-Updates/job/OrthoinferenceStableIdentifierHistory/lastBuild/api/json"
+					if (OrthoinferenceStableIdentifierHistoryStatusUrl.getStatus() == 404) {
+						error("OrthoinferenceStableIdentifierHistory has not yet been run. Please complete a successful build.")
+					} else {
+						def OrthoinferenceStableIdentifierHistoryJson = new JsonSlurper().parseText(OrthoinferenceStableIdentifierHistoryStatusUrl.getContent())
+						if(OrthoinferenceStableIdentifierHistoryJson['result'] != "SUCCESS"){
+							error("Most recent OrthoinferenceStableIdentifierHistory build status: " + OrthoinferenceStableIdentifierHistoryJson['result'] + ". Please complete a successful build.")
+						}
+					}
+					*/
+				}
+			}
+		}
+		stage('Main: Run MSigDB-GSEA'){
+			steps{
+				script{
+					dir("${env.ABS_RELEASE_PATH}/msigdb-gsea/"){
+						sh "perl build_gsea.pl"
+						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "./runGSEAOutput.sh localhost ${env.RELEASE_CURRENT} $user $pass 3306  Reactome_GeneSet_${currentRelease}.txt 48887 true"
+						}
+					}
+				}
+			}
+		}
+		/*
+		stage('Post: Archive Outputs'){
+			steps{
+				script{
+					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${currentRelease}/biomodels"
+					def biomodelsPath = "${env.ABS_RELEASE_PATH}/biomodels"
+					sh "mkdir -p databases/ data/"
+					sh "mv --backup=numbered *_${currentRelease}_*.dump.gz databases/"
+					sh "mv graph-importer/logs/* logs/"
+					sh "mv analysis-core/logs/* logs/"
+					sh "mv ${biomodelsPath}/logs/* logs/"
+					sh "mv ${biomodelsPath}/jsbml.log logs/"
+					sh "mv ${biomodelsPath}/models2pathways.tsv data/"
+					sh "mv analysis-core/analysis-biomodels-v${currentRelease}.bin data/"
+					sh "mv /tmp/intact-micluster.txt data/"
+					sh "gzip data/* logs/*"
+					sh "mv graph-importer/graphdb_${currentRelease}_biomodels.tgz data/"
+					sh "mv ${biomodelsPath}/BioModels_Database-*sbml_files.tar.bz2 data/"
+					sh "aws s3 --no-progress --recursive cp databases/ $s3Path/databases/"
+					sh "aws s3 --no-progress --recursive cp logs/ $s3Path/logs/"
+					sh "aws s3 --no-progress --recursive cp data/ $s3Path/data/"
+					sh "rm -r databases logs data ${biomodelsPath}/BioModels_Database-*-sbml_files"
+					sh "rm -rf graph-importer*"
+					sh "rm -rf analysis-core*"
+					sh "rm -rf release-jenkins-utils*"
+				}
+			}
+		}
+		*/
+	}		
+}
+// Utility function that checks if a git directory exists. If not, it is cloned.
+def cloneOrPullGitRepo(String repoName) {
+	// This method is deceptively named -- it can also check if a directory exists
+	if(!fileExists(repoName)) {
+		sh "git clone ${env.REACTOME_GITHUB_BASE_URL}/${repoName}"
+	} else {
+		sh "cd ${repoName}; git pull"
+	}
+}
