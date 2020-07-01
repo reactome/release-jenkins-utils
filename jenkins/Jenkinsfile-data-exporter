@@ -49,6 +49,35 @@ pipeline {
 				}
 			}
 		}
+		stage('Main: Upload NCBI data'){
+			steps{
+				script{
+					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
+						sh "perl upload_ncbi.pl -version ${currentRelease}"
+					}
+				}
+			}
+		}
+		stage('Main: Upload EuropePMC data'){
+			steps{
+				script{
+					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
+						sh "perl upload_europepmc.pl -version ${currentRelease}"
+					}
+				}
+			}
+		}
+		stage('Main: Run Hapmap script'){
+			steps{
+				script{
+					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
+						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "perl 1haprefseq.pl -user $user -pass $pass -db ${env.RELEASE_CURRENT}"
+						}
+					}
+				}
+			}
+		}
 		/*
 		stage('Post: Archive Outputs'){
 			steps{
