@@ -1,6 +1,6 @@
 import groovy.json.JsonSlurper
 // This Jenkinsfile is used by Jenkins to run the GenerateGraphDatabaseAndAnalysisCore step of Reactome's release.
-// It requires that the OrthoinferenceStableIdentifierHistory step has been run successfully before it can be run.
+// It requires that the BioModels step has been run successfully before it can be run.
 def currentRelease
 def previousRelease
 pipeline {
