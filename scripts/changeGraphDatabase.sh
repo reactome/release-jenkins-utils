@@ -7,6 +7,7 @@ finalNeo4jDir="/var/lib/neo4j/data/databases"
 chmod 644 ${tmpNeo4jDir}/*
 chmod a+x ${tmpNeo4jDir}/schema/
 chown -R neo4j:adm ${tmpNeo4jDir}/
-mkdir -p ${finalNeo4jDir}/extra
-mv ${finalNeo4jDir}/graph.db ${finalNeo4jDir}/extra/
+## Existing graph database should either be archived already on S3 (final), or can otherwise be deleted (post-orthoinference, pre-biomodels).
+## Either way, safe to delete the graph database here.
+rm -r ${finalNeo4jDir}/graph.db
 mv ${tmpNeo4jDir} ${finalNeo4jDir}/
