@@ -7,7 +7,8 @@ pipeline {
 	agent any
 
 	stages {
-  		// This stage checks that an upstream project, BioModels, was run successfully for its last build.
+/*
+             // This stage checks that an upstream project, BioModels, was run successfully for its last build.
 		stage('Check BioModels build succeeded'){
 			steps{
 				script{
@@ -98,10 +99,14 @@ pipeline {
 				}
 			}
 		}
+*/
 		// This stage emails the contents of the GraphQA_Summary_vXX.csv, and informs that the graph database is now on release. 
 		stage('Post: Email graph-qa output'){
 			steps{
 				script{
+					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
+					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
+
 					emailext (
 						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${currentRelease}. The relational database updates have completed and the graph database has been generated. It should be visible at https://release.reactome.org. This is NOT the final release email. \n\nCurrent release data (v${currentRelease}) is visible in: \n\t- Details pages\n\t- Analysis service \n\t- Content service \n\nPrevious release data (v${previousRelease}) is still visible in: \n\t- Downloadable files \n\t- Searching \n\t- Diagrams \n\nYou can navigate the Pathway Browser as well to see details, though just be aware that new/updated diagrams are not yet visible. Please notify the developer running release if you notice any issues. Do NOT reply to this email. \n\nThanks!",
 						to: '$DEFAULT_RECIPIENTS',
@@ -115,6 +120,9 @@ pipeline {
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
+					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
+					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
+
 					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${currentRelease}/graph_db_analysis_core"
 					sh "mkdir -p databases/ data/ logs/ reports/"
 					sh "mv --backup=numbered *_${currentRelease}_*.dump.gz databases/"
