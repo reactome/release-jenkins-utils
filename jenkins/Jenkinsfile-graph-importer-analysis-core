@@ -99,25 +99,25 @@ pipeline {
 				}
 			}
 		}
-
-		// This stage emails the contents of the GraphQA_Summary_vXX.csv, and informs that the graph database is now on release. 
-		stage('Post: Email graph-qa output'){
-			steps{
-				script{
-					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
-					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
-
-					emailext (
-						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${currentRelease}. The relational database updates have completed and the graph database has been generated. It should be visible at https://release.reactome.org. This is NOT the final release email. \n\nCurrent release data (v${currentRelease}) is visible in: \n\t- Details pages\n\t- Analysis service \n\t- Content service \n\nPrevious release data (v${previousRelease}) is still visible in: \n\t- Downloadable files \n\t- Searching \n\t- Diagrams \n\nYou can navigate the Pathway Browser as well to see details, though just be aware that new/updated diagrams are not yet visible. Please notify the developer running release if you notice any issues. Do NOT reply to this email. \n\nThanks!",
-						to: '$DEFAULT_RECIPIENTS',
-						from: "${env.JENKINS_RELEASE_EMAIL}",
-						subject: "v${currentRelease} graph database available on release.reactome.org",
-						attachmentsPattern: "**/graph-qa/reports/GraphQA_Summary_v${currentRelease}.csv"
-					)
-				}
-			}
-		}
 */
+		// This stage emails the contents of the GraphQA_Summary_vXX.csv, and informs that the graph database is now on release. 
+//		stage('Post: Email graph-qa output'){
+//			steps{
+//				script{
+//					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
+//					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
+//
+//					emailext (
+//						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${currentRelease}. The relational database updates have completed and the graph database has been generated. It should be visible at https://release.reactome.org. This is NOT the final release email. \n\nCurrent release data (v${currentRelease}) is visible in: \n\t- Details pages\n\t- Analysis service \n\t- Content service \n\nPrevious release data (v${previousRelease}) is still visible in: \n\t- Downloadable files \n\t- Searching \n\t- Diagrams \n\nYou can navigate the Pathway Browser as well to see details, though just be aware that new/updated diagrams are not yet visible. Please notify the developer running release if you notice any issues. Do NOT reply to this email. \n\nThanks!",
+//						to: '$DEFAULT_RECIPIENTS',
+//						from: "${env.JENKINS_RELEASE_EMAIL}",
+//						subject: "v${currentRelease} graph database available on release.reactome.org",
+//						attachmentsPattern: "**/graph-qa/reports/GraphQA_Summary_v${currentRelease}.csv"
+//					)
+//				}
+//			}
+//		}
+
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
