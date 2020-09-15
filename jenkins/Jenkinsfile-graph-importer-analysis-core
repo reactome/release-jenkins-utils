@@ -99,8 +99,7 @@ pipeline {
 				}
 			}
 		}
-*/
-/*
+
 		// This stage emails the contents of the GraphQA_Summary_vXX.csv, and informs that the graph database is now on release. 
 		stage('Post: Email graph-qa output'){
 			steps{
