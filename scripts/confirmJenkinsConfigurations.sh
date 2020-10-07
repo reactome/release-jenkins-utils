@@ -21,7 +21,7 @@ while (( "$#" )); do
 			shift 2;
 			;;
 		-p|--release-previous-jenkins-filepath)
-			jenkinsFilePathPreviousReleaseNumberr=$2;
+			jenkinsFilePathPreviousReleaseNumber=$2;
 			shift 2;
 			;;
 		-u|--user-input-release)
@@ -39,7 +39,7 @@ if [ -z "$configFile" ] || [ -z "$jenkinsFilePathReleaseNumber" ] || [ -z "$jenk
 then
 	echo "Confirm Jenkins configurations.";
 	echo "Compares 'release number' values for config file, Jenkins URL and from user input. This script should be invoked by a Jenkins process during Reactome's Release."; 
-	echo "Usage: bash confirmJenkinsConfigurations.sh --config configFilepath --release-jenkins-filepath jenkinsFilePathReleaseNumber --release-previous-jenkins-filepath jenkinsFilePathPreviousReleaseNumber --user-release userInputReleaseNumber ";
+	echo "Usage: bash confirmJenkinsConfigurations.sh --config-file configFilepath --release-jenkins-filepath jenkinsFilePathReleaseNumber --release-previous-jenkins-filepath jenkinsFilePathPreviousReleaseNumber --user-release userInputReleaseNumber ";
 	exit 1
 fi
 
