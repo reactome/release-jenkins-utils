@@ -5,8 +5,8 @@ DIR=$(dirname "$(readlink -f "$0")") # Directory of the script -- allows the scr
 cd $DIR
 
 configFile=
-jenkinsURLReleaseNumber=
-jenkinsURLPreviousReleaseNumber=
+jenkinsFilePathReleaseNumber=
+jenkinsFilePathPreviousReleaseNumber=
 userInputReleaseNumber=
 
 ## Parse command-line arguments.
@@ -16,12 +16,12 @@ while (( "$#" )); do
 			configFile=$2;
 			shift 2;
 			;;
-		-r|--release-jenkins-url)
-			jenkinsURLReleaseNumber=$2;
+		-r|--release-jenkins-filepath)
+			jenkinsFilePathReleaseNumber=$2;
 			shift 2;
 			;;
-		-p|--release-previous-jenkins-url)
-			jenkinsURLPreviousReleaseNumber=$2;
+		-p|--release-previous-jenkins-filepath)
+			jenkinsFilePathPreviousReleaseNumberr=$2;
 			shift 2;
 			;;
 		-u|--user-input-release)
@@ -35,11 +35,11 @@ while (( "$#" )); do
 done
 
 ## If missing arguments, explain usage.
-if [ -z "$configFile" ] || [ -z "$jenkinsURLReleaseNumber" ] || [ -z "$jenkinsURLPreviousReleaseNumber" ] || [ -z "$userInputReleaseNumber" ]
+if [ -z "$configFile" ] || [ -z "$jenkinsFilePathReleaseNumber" ] || [ -z "$jenkinsFilePathPreviousReleaseNumber" ] || [ -z "$userInputReleaseNumber" ]
 then
 	echo "Confirm Jenkins configurations.";
 	echo "Compares 'release number' values for config file, Jenkins URL and from user input. This script should be invoked by a Jenkins process during Reactome's Release."; 
-	echo "Usage: bash confirmJenkinsConfigurations.sh --config configFilepath --release-jenkins-url jenkinsURLReleaseNumber --release-previous-jenkins-url jenkinsURLPreviousReleaseNumber --user-release userInputReleaseNumber ";
+	echo "Usage: bash confirmJenkinsConfigurations.sh --config configFilepath --release-jenkins-filepath jenkinsFilePathReleaseNumber --release-previous-jenkins-filepath jenkinsFilePathPreviousReleaseNumber --user-release userInputReleaseNumber ";
 	exit 1
 fi
 
@@ -53,8 +53,8 @@ while read line; do
 done < $configFile
 
 ## Compare user input release number value with release number value in Jenkins URL.
-if [[ $userInputReleaseNumber != $jenkinsURLReleaseNumber ]] ; then 
-  echo "User input release number ($userInputReleaseNumber) does not match release number in Jenkins URL: ($jenkinsURLReleaseNumber)."
+if [[ $userInputReleaseNumber != $jenkinsFilePathReleaseNumber ]] ; then 
+  echo "User input release number ($userInputReleaseNumber) does not match release number in Jenkins filepath: ($jenkinsFilePathReleaseNumber)."
   exit 1
 fi
 
@@ -68,8 +68,8 @@ fi
 ## Compare previous release number, created by subtracting from user input release number, with jenkins environment's previous release number value.
 previousReleaseNumber="$(($userInputReleaseNumber-1))"
 
-if [[ $previousReleaseNumber != $jenkinsURLPreviousReleaseNumber ]]; then
-  echo "Jenkins URL 'previous' release number ($jenkinsURLPreviousReleaseNumber) does not match expected previous release number ($previousReleaseNumber)."
+if [[ $previousReleaseNumber != $jenkinsFilePathPreviousReleaseNumber ]]; then
+  echo "Jenkins filepath 'previous' release number ($jenkinsFilePathPreviousReleaseNumber) does not match expected previous release number ($previousReleaseNumber)."
   exit 1
 fi
 
