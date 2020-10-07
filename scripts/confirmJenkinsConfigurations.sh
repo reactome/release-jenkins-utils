@@ -60,7 +60,7 @@ fi
 
 ## Compare user input release number value with config file's release number value.
 if  [[ $userInputReleaseNumber != $configFileReleaseNumber ]]; then
-  echo "User input release number ($userInputReleaseNumber) does not match config file's releaseNumber ($configFileReleaseNumber)."
+  echo "User input release number ($userInputReleaseNumber) does not match config file's releaseNumber variable ($configFileReleaseNumber)."
   echo "Please update config file at 'Jenkins -> Releases -> $userInputReleaseNumber -> Credentials -> Config'."
   exit 1
 fi
