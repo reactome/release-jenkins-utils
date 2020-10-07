@@ -31,10 +31,10 @@ pipeline{
 													[$class: 'TextParameterDefinition', defaultValue: '', name: 'response']
 												])
 												
-						def currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
-						def previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
+						def currentReleaseFromURL = (pwd() =~ /Releases\/(\d+)\//)[0][1];
+						def previousReleaseFromURL = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
 						withCredentials([file(credentialsId: 'Config', variable: 'ConfigFile')]){
-							sh "bash confirmJenkinsConfigurations.sh --config $ConfigFile --env-release-current ${currentRelease} --env-release-previous ${previousRelease} --user-release $userReleaseNumber"
+							sh "bash confirmJenkinsConfigurations.sh --config-file $ConfigFile --release-jenkins-url ${currentReleaseFromURL} --release-previous-jenkins-url ${previousReleaseFromURL} --user-input-release $userReleaseNumber"
 						}
 					}
 				}
