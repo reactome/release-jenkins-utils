@@ -28,6 +28,7 @@ pipeline {
 				}
 			}
 		}
+		/*
 		// This stage backs up the gk_central database before it is modified.
 		stage('Setup: Back up gk_central before modifications'){
 			steps{
@@ -74,7 +75,7 @@ pipeline {
 				}
 			}
 		}
-		
+		*/
 		// This stage emails the uniprot.wiki file to the default recipients list.
 		stage('Post: Email UniProt.wiki file'){
 			steps{
@@ -84,7 +85,7 @@ pipeline {
 						to: '$DEFAULT_RECIPIENTS',
 						from: "${env.JENKINS_RELEASE_EMAIL}",
 						subject: "UniProt Update Reports for v${currentRelease}",
-						attachmentsPattern: "**/uniprot.wiki"
+						attachmentsPattern: "**${env.ABS_RELEASE_PATH}/uniprot_update/uniprot.wiki"
 					)
 				}
 			}
@@ -99,11 +100,11 @@ pipeline {
 					sh "mkdir -p databases/ data/ logs/"
 					sh "mv --backup=numbered *_${currentRelease}_*.dump.gz databases/"
 					sh "mv *.txt data/"
-					sh "mv trembl_to_update.acc data/"
-					sh "mv uniprot-reviewed:no.list data/"
-					sh "mv uniprot_sprot.xml data/"
-					sh "mv uniprot.wiki data/"
-					sh "mv uniprot.* logs/"
+					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/trembl_to_update.acc data/"
+					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot-reviewed:no.list data/"
+					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot_sprot.xml data/"
+					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot.wiki data/"
+					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot.* logs/"
 					sh "gzip data/* logs/*"
 					sh "aws s3 --no-progress --recursive cp databases/ $s3Path/databases/"
 					sh "aws s3 --no-progress --recursive cp logs/ $s3Path/logs/"
