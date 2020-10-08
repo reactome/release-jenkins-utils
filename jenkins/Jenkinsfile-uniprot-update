@@ -85,7 +85,6 @@ pipeline {
 						to: '$DEFAULT_RECIPIENTS',
 						from: "${env.JENKINS_RELEASE_EMAIL}",
 						subject: "UniProt Update Reports for v${currentRelease}",
-						attachmentsPattern: "**/uniprot.wiki"
 					)
 				}
 			}
