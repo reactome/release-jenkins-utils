@@ -2,21 +2,22 @@ import groovy.json.JsonSlurper
 // This Jenkinsfile is used by Jenkins to run the 'UniProt Update' step of Reactome's release.
 // This step synchronizes Reactome's database with UniProt. 
 // It requires that the 'ConfirmReleaseConfigs' step has been run successfully before it can be run.
-def currentRelease
-def previousRelease
 pipeline {
 	agent any
+	
+	environment{
+		// NOTE: this file must be executed in a directory whose name is a numeric sequence, and whose parent is named "Releases".
+		// This is how other Jenkinsfiles in the Release process determine the current release number.
+		RELEASE_VERSION = getReleaseVersionTag();
+    	}
 
 	stages {
 		// This stage checks that an upstream step, ConfirmReleaseConfigs, was run successfully.
 		stage('Check ConfirmReleaseConfigs build succeeded'){
 			steps{
 				script{
-					// Get current release number from directory
-					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
-					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
 					// This queries the Jenkins API to confirm that the most recent build of ConfirmReleaseConfigs was successful.
-					def configStatusUrl = httpRequest authentication: 'jenkinsKey', validResponseCodes: "${env.VALID_RESPONSE_CODES}", url: "${env.JENKINS_JOB_URL}/job/${currentRelease}/job/ConfirmReleaseConfigs/lastBuild/api/json"
+					def configStatusUrl = httpRequest authentication: 'jenkinsKey', validResponseCodes: "${env.VALID_RESPONSE_CODES}", url: "${env.JENKINS_JOB_URL}/job/${env.RELEASE_VERSION}/job/ConfirmReleaseConfigs/lastBuild/api/json"
 					if (configStatusUrl.getStatus() == 404) {
 						error("ConfirmReleaseConfigs has not yet been run. Please complete a successful build.")
 					} else {
@@ -28,13 +29,13 @@ pipeline {
 				}
 			}
 		}
-		/*
 		// This stage backs up the gk_central database before it is modified.
 		stage('Setup: Back up gk_central before modifications'){
 			steps{
 				script{
+				        def timestamp = new Date().format("yyyy-MM-dd-HHmm")
 					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-						def central_before_uniprot_update_dump = "${env.GK_CENTRAL_DB}_${currentRelease}_before_uniprot_update.dump"
+						def central_before_uniprot_update_dump = "${env.GK_CENTRAL_DB}_${env.RELEASE_VERSION}_before_uniprot_update_${timestamp}.dump"
 						sh "mysqldump -u$user -p$pass -h${env.CURATOR_SERVER} ${env.GK_CENTRAL_DB} > $central_before_uniprot_update_dump"
 						sh "gzip -f $central_before_uniprot_update_dump"
 					}
@@ -67,8 +68,9 @@ pipeline {
 		stage('Post: Backup gk_central after modifications'){
 			steps{
 				script{
+				    def timestamp = new Date().format("yyyy-MM-dd-HHmm")
 					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-						def central_after_update_uniprot_update_dump = "${env.GK_CENTRAL_DB}_${currentRelease}_after_uniprot_update.dump"
+						def central_after_update_uniprot_update_dump = "${env.GK_CENTRAL_DB}_${env.RELEASE_VERSION}_after_uniprot_update_${timestamp}.dump"
 						sh "mysqldump -u$user -p$pass -h${env.CURATOR_SERVER} ${env.GK_CENTRAL_DB} > $central_after_update_uniprot_update_dump"
 						sh "gzip -f $central_after_update_uniprot_update_dump"
 					}
@@ -79,13 +81,13 @@ pipeline {
 		stage('Post: Email UniProt.wiki file'){
 			steps{
 				script{
-				    sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot.wiki ."
+					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot.wiki ."
 					emailext (
-						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${currentRelease}. The UniProt Update step has completed. Please review the uniprot.wiki file attached to this email. If it looks correct, the contents of the file need to be uploaded to https://devwiki.reactome.org/index.php/Reports_Archive under 'UniProt Update Reports'. Please add the current UniProt wiki URL to the 'Archived reports' section of the page. If the file looks incorrect, please email the developer running Release. \n\nThanks!",
+						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${env.RELEASE_VERSION}. The UniProt Update step has completed. Please review the uniprot.wiki file attached to this email. If it looks correct, the contents of the file need to be uploaded to https://devwiki.reactome.org/index.php/Reports_Archive under 'UniProt Update Reports'. Please add the current UniProt wiki URL to the 'Archived reports' section of the page. If the file looks incorrect, please email the developer running Release. \n\nThanks!",
 						to: '$DEFAULT_RECIPIENTS',
 						from: "${env.JENKINS_RELEASE_EMAIL}",
-						subject: "UniProt Update Reports for v${currentRelease}",
-						//DON'T FORGET EMAIL ATTACHMENT
+						subject: "UniProt Update Reports for v${env.RELEASE_VERSION}",
+						attachmentsPattern: "**/uniprot.wiki"
 					)
 				}
 			}
@@ -95,9 +97,9 @@ pipeline {
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
-					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${currentRelease}/uniprot_update"
+					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${env.RELEASE_VERSION}/uniprot_update"
 					sh "mkdir -p databases/ data/ logs/"
-					sh "mv --backup=numbered *_${currentRelease}_*.dump.gz databases/"
+					sh "mv --backup=numbered *_${env.RELEASE_VERSION}_*.dump.gz databases/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/sequence_uniprot_report.txt data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/reference_DNA_sequence_report.txt data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/duplicated_db_id.txt data/"
@@ -114,6 +116,11 @@ pipeline {
 				}
 			}
 		}
-		*/
 	}
+}
+
+// Finds release version (ex: 74) from directory that step is being run from.
+def getReleaseVersionTag()
+{
+    return (pwd() =~ /Releases\/(\d+)\//)[0][1];
 }
