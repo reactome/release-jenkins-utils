@@ -109,7 +109,7 @@ pipeline {
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot_sprot.xml data/"
 					sh "mv uniprot.wiki data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot.* logs/"
-					sh "gzip data/* logs/*"
+					sh "gzip -r data/* logs/*"
 					sh "aws s3 --no-progress --recursive cp databases/ $s3Path/databases/"
 					sh "aws s3 --no-progress --recursive cp logs/ $s3Path/logs/"
 					sh "aws s3 --no-progress --recursive cp data/ $s3Path/data/"
