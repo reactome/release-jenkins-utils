@@ -24,7 +24,7 @@ while (( "$#" )); do
 			jenkinsFilePathPreviousReleaseNumber=$2;
 			shift 2;
 			;;
-		-u|--user-input-release)
+		-u|--user-release-number)
 			userInputReleaseNumber=$2;
 			shift 2;
 			;;
