@@ -29,10 +29,19 @@ def checkUpstreamBuildsSucceeded(String stepPath) {
     }
 }
 
+/**
+ * Helper method for taking database dumps and gzipping the resultant file.
+ * @param database - Name of database to be dumped
+ * @param stepName - Name of release step currently being run
+ * @param beforeOrAfter - Either 'before' or 'after' strings, denoting when the dump is being taken in the process.
+ * @param username - MySQL username
+ * @param password - MySQL password
+ * @param host - MySQL host
+ */
 def takeDatabaseDumpAndGzip(String database, String stepName, String beforeOrAfter, String username, String password, String host) {
     def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
     def releaseVersion = getReleaseVersion()
     def filename = "${database}_${releaseVersion}_${beforeOrAfter}_${stepName}_${timestamp}.dump"
-    sh "mysqldump -u${user} -p${pass} -h${host} ${database} > ${filename}"
+    sh "mysqldump -u${username} -p${password} -h${host} ${database} > ${filename}"
     sh "gzip -f ${filename}"
 }
