@@ -21,11 +21,8 @@ pipeline {
 		stage('Setup: Back up gk_central before modifications'){
 			steps{
 				script{
-				        def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
 					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-						def central_before_uniprot_update_dump = "${env.GK_CENTRAL_DB}_${env.RELEASE_VERSION}_before_uniprot_update_${timestamp}.dump"
-						sh "mysqldump -u$user -p$pass -h${env.CURATOR_SERVER} ${env.GK_CENTRAL_DB} > $central_before_uniprot_update_dump"
-						sh "gzip -f $central_before_uniprot_update_dump"
+					    utils.takeDatabaseDumpAndGzip("${env.GK_CENTRAL_DB}", "uniprot_update", "before", "$user", "$pass", "${env.CURATOR_SERVER}")
 					}
 				}
 			}
@@ -56,11 +53,8 @@ pipeline {
 		stage('Post: Backup gk_central after modifications'){
 			steps{
 				script{
-				    def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
 					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-						def central_after_update_uniprot_update_dump = "${env.GK_CENTRAL_DB}_${env.RELEASE_VERSION}_after_uniprot_update_${timestamp}.dump"
-						sh "mysqldump -u$user -p$pass -h${env.CURATOR_SERVER} ${env.GK_CENTRAL_DB} > $central_after_update_uniprot_update_dump"
-						sh "gzip -f $central_after_update_uniprot_update_dump"
+						utils.takeDatabaseDumpAndGzip("${env.GK_CENTRAL_DB}", "uniprot_update", "after", "$user", "$pass", "${env.CURATOR_SERVER}")
 					}
 				}
 			}
