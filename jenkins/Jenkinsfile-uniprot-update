@@ -14,7 +14,7 @@ pipeline {
 		stage('Check ConfirmReleaseConfigs build succeeded'){
 			steps{
 				script{
-					utils.checkUpstreamBuildsSucceeded("ConfirmReleaseConfigs"))
+					utils.checkUpstreamBuildsSucceeded("ConfirmReleaseConfigs")
 				}
 			}
 		}
