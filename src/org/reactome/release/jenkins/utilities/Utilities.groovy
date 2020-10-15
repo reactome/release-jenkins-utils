@@ -68,3 +68,16 @@ def sendEmailWithAttachment(String emailSubject, String emailBody, String emailA
             attachmentsPattern: "**/${emailAttachmentFilename}"
     )
 }
+
+/**
+ * Helper method for cloning or pulling a github repository.
+ * @param repoName - Base name of github repository that exists in the Reactome github project.
+ */
+def cloneOrPullGitRepo(String repoName) {
+    // This method is deceptively named -- it can also check if a directory exists
+    if(!fileExists(repoName)) {
+        sh "git clone ${env.REACTOME_GITHUB_BASE_URL}/${repoName}"
+    } else {
+        sh "cd ${repoName}; git pull"
+    }
+}
