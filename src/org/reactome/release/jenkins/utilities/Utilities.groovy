@@ -62,7 +62,7 @@ def takeDatabaseDumpAndGzip(String database, String stepName, String beforeOrAft
 def sendEmailWithAttachment(String emailSubject, String emailBody, String emailAttachmentFilename) {
     emailext (
             body: "${emailBody}",
-            to: "${DEFAULT_RECIPIENTS}",
+            to: "${env.DEFAULT_RECIPIENTS}",
             from: "${env.JENKINS_RELEASE_EMAIL}",
             subject: "${emailSubject}",
             attachmentsPattern: "**/${emailAttachmentFilename}"
