@@ -30,11 +30,9 @@ def checkUpstreamBuildsSucceeded(String stepPath) {
 }
 
 def takeDatabaseDumpAndGzip(String database, String stepName, String beforeOrAfter, String username, String password, String host) {
-    sh "echo ${database}"
-    sh "echo $database"
-   // def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
-    //def releaseVersion = getReleaseVersion()
-   // def filename = "$database_$releaseVersion_$beforeOrAfter_$stepName_$timestamp.dump"
-   // sh "mysqldump -u$user -p$pass -h$host $database > $filename"
-   // sh "gzip -f $filename"
+    def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
+    def releaseVersion = getReleaseVersion()
+    def filename = "$database_$releaseVersion_$beforeOrAfter_$stepName_$timestamp.dump"
+    sh "mysqldump -u$user -p$pass -h$host $database > $filename"
+    sh "gzip -f $filename"
 }
