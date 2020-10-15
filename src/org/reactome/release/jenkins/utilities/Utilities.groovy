@@ -45,3 +45,13 @@ def takeDatabaseDumpAndGzip(String database, String stepName, String beforeOrAft
     sh "mysqldump -u${username} -p${password} -h${host} ${database} > ${filename}"
     sh "gzip -f ${filename}"
 }
+
+def sendEmailWithAttachment(String emailSubject, String emailBody, String emailAttachment) {
+    emailext (
+            body: "${emailBody}",
+            to: '$DEFAULT_RECIPIENTS',
+            from: "${env.JENKINS_RELEASE_EMAIL}",
+            subject: "${emailSubject}",
+            attachmentsPattern: "**/${emailAttachment}"
+    )
+}
