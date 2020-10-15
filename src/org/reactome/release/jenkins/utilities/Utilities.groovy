@@ -2,6 +2,13 @@ package org.reactome.release.jenkins.utilities
 
 import groovy.json.JsonSlurper
 
+
+/**
+ * @author: jcook
+ * This library is used by the Reactome Jenkins process. It contains commonly used functionality that are used by the Jenkinsfiles
+ * while running the Reactome Release.
+ */
+
 /**
  * Helper method for parsing out release number from Jenkins directory.
  * @return - Release number taken from directory (eg: 74)
@@ -46,12 +53,18 @@ def takeDatabaseDumpAndGzip(String database, String stepName, String beforeOrAft
     sh "gzip -f ${filename}"
 }
 
-def sendEmailWithAttachment(String emailSubject, String emailBody, String emailAttachment) {
+/**
+ * Helper method for sending emails that contain attachments.
+ * @param emailSubject - Subject header for email that will be sent
+ * @param emailBody - Text that will make up the body of the email that will be sent
+ * @param emailAttachmentFilename - Name of file that will be sent as an attachment in the email
+ */
+def sendEmailWithAttachment(String emailSubject, String emailBody, String emailAttachmentFilename) {
     emailext (
             body: "${emailBody}",
-            to: '$DEFAULT_RECIPIENTS',
+            to: "${DEFAULT_RECIPIENTS}",
             from: "${env.JENKINS_RELEASE_EMAIL}",
             subject: "${emailSubject}",
-            attachmentsPattern: "**/${emailAttachment}"
+            attachmentsPattern: "**/${emailAttachmentFilename}"
     )
 }
