@@ -1,5 +1,6 @@
 // This Jenkinsfile is used by Jenkins to run the 'UniProt Update' step of Reactome's release.
-// This step synchronizes Reactome's database with UniProt. 
+// This step synchronizes Reactome's database with UniProt.
+ 
 import groovy.json.JsonSlurper
 // Shared library maintained at 'release-jenkins-utils' repository.
 import org.reactome.release.jenkins.utilities.Utilities
@@ -81,6 +82,7 @@ pipeline {
 				script{
 					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${env.RELEASE_VERSION}/uniprot_update"
 					sh "mkdir -p databases/ data/ logs/"
+					
 					sh "mv --backup=numbered *_${env.RELEASE_VERSION}_*.dump.gz databases/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/sequence_uniprot_report.txt data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/reference_DNA_sequence_report.txt data/"
@@ -90,6 +92,7 @@ pipeline {
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot_sprot.xml data/"
 					sh "mv uniprot.wiki data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot.* logs/"
+					
 					sh "gzip -r data/* logs/*"
 					sh "aws s3 --no-progress --recursive cp databases/ $s3Path/databases/"
 					sh "aws s3 --no-progress --recursive cp logs/ $s3Path/logs/"
