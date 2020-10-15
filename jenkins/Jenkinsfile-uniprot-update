@@ -1,36 +1,19 @@
 // This Jenkinsfile is used by Jenkins to run the 'UniProt Update' step of Reactome's release.
 // This step synchronizes Reactome's database with UniProt. 
-// It requires that the 'ConfirmReleaseConfigs' step has been run successfully before it can be run.
-
 import groovy.json.JsonSlurper
-// Shared library maintained at release-jenkins-utils repository.
+// Shared library maintained at 'release-jenkins-utils' repository.
 import org.reactome.release.jenkins.utilities.Utilities
 def utils = new Utilities()
 
 pipeline {
 	agent any
-	
-	environment{
-		// NOTE: this file must be executed in a directory whose name is a numeric sequence, and whose parent is named "Releases".
-		// This is how other Jenkinsfiles in the Release process determine the current release number.
-		RELEASE_VERSION = utils.getReleaseVersion();
-    	}
 
 	stages {
 		// This stage checks that an upstream step, ConfirmReleaseConfigs, was run successfully.
 		stage('Check ConfirmReleaseConfigs build succeeded'){
 			steps{
 				script{
-					// This queries the Jenkins API to confirm that the most recent build of ConfirmReleaseConfigs was successful.
-					def configStatusUrl = httpRequest authentication: 'jenkinsKey', validResponseCodes: "${env.VALID_RESPONSE_CODES}", url: "${env.JENKINS_JOB_URL}/job/${env.RELEASE_VERSION}/job/ConfirmReleaseConfigs/lastBuild/api/json"
-					if (configStatusUrl.getStatus() == 404) {
-						error("ConfirmReleaseConfigs has not yet been run. Please complete a successful build.")
-					} else {
-						def configStatusJson = new JsonSlurper().parseText(configStatusUrl.getContent())
-						if (configStatusJson['result'] != "SUCCESS"){
-							error("Most recent ConfirmReleaseConfigs build status: " + configStatusJson['result'] + ". Please complete a successful build.")
-						}
-					}
+					utils.checkUpstreamBuildsSucceeded("ConfirmReleaseConfigs"))
 				}
 			}
 		}
