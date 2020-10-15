@@ -6,8 +6,7 @@ import groovy.json.JsonSlurper
  * Helper method for parsing out release number from Jenkins directory.
  * @return - Release number taken from directory (eg: 74)
  */
-def getReleaseVersion()
-{
+def getReleaseVersion() {
     return (pwd() =~ /Releases\/(\d+)\//)[0][1];
 }
 
@@ -28,4 +27,12 @@ def checkUpstreamBuildsSucceeded(String stepPath) {
             error("Most recent $stepPath build status: " + statusJson['result'] + ". Please complete a successful build.")
         }
     }
+}
+
+def takeDatabaseDumpAndGzip(String database, String stepName, String beforeOrAfter, String username, String password, String host) {
+    def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
+    def releaseVersion = getReleaseVersion()
+    def filename = "$database_$releaseVersion_$beforeOrAfter_$stepName_$timestamp.dump"
+    sh "mysqldump -u$user -p$pass -h$host $database > $filename"
+    sh "gzip -f $filename"
 }
