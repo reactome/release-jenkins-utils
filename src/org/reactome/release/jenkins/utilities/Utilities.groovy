@@ -49,6 +49,7 @@ def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeO
     def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
     def releaseVersion = getReleaseVersion()
     def filename = "${databaseName}_${releaseVersion}_${beforeOrAfter}_${stepName}_${timestamp}.dump"
+    // The user and pass values come from a MySQL credentials 'secret' in Jenkinsfile calling the method.
     sh "mysqldump -u${user} -p${pass} -h${host} ${databaseName} > ${filename}"
     sh "gzip -f ${filename}"
 }
