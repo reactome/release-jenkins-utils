@@ -89,7 +89,7 @@ def buildJarFile() {
     sh "mvn clean compile assembly:single"
 }
 
-def cleanUpAndArchiveBuildFiles(String stepName, List<String> dataFiles) {
+def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles) {
     def releaseVersion = getReleaseVersion()
     def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${releaseVersion}/${stepName}"
 
