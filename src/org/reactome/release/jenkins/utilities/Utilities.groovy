@@ -89,13 +89,14 @@ def buildJarFile() {
     sh "mvn clean compile assembly:single"
 }
 
-def cleanUpAndArchiveBuildFiles(String stepName) {
+def cleanUpAndArchiveBuildFiles(String stepName, List<String> dataFiles) {
     def releaseVersion = getReleaseVersion()
     def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${releaseVersion}/${stepName}"
-    /*
+
     sh "mkdir -p databases/ data/ logs/"
-    sh "mv *_${releaseVersion}_*.dump.gz databases/"
+    //sh "mv *_${releaseVersion}_*.dump.gz databases/"
     moveFilesToFolder("data", dataFiles)
+    /*
     moveFilesToFolder("logs", logFiles)
     sh "gzip -rf data/* logs/*"
 
