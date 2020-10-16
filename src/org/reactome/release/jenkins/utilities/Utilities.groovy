@@ -5,8 +5,8 @@ import groovy.json.JsonSlurper
 
 /**
  * @author: jcook
- * This library is used by the Reactome Jenkins process. It contains commonly used functionality that are used by the Jenkinsfiles
- * while running the Reactome Release.
+ * This library is used by the Reactome Jenkins process. It contains commonly used  
+ * functionality that are used by the Jenkinsfiles while running the Reactome Release.
  */
 
 /**
