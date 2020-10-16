@@ -45,11 +45,11 @@ def checkUpstreamBuildsSucceeded(String stepPath) {
  * @param password - MySQL password
  * @param host - MySQL host
  */
-def takeDatabaseDumpAndGzip(String database, String stepName, String beforeOrAfter, String username, String password, String host) {
+def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeOrAfter, String host) {
     def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
     def releaseVersion = getReleaseVersion()
-    def filename = "${database}_${releaseVersion}_${beforeOrAfter}_${stepName}_${timestamp}.dump"
-    sh "mysqldump -u${username} -p${password} -h${host} ${database} > ${filename}"
+    def filename = "${databaseName}_${releaseVersion}_${beforeOrAfter}_${stepName}_${timestamp}.dump"
+    sh "mysqldump -u${user} -p${pass} -h${host} ${databaseName} > ${filename}"
     sh "gzip -f ${filename}"
 }
 
@@ -73,8 +73,7 @@ def sendEmailWithAttachment(String emailSubject, String emailBody, String emailA
  * Helper method for cloning or pulling a github repository.
  * @param repoName - Base name of github repository that exists in the Reactome github project.
  */
-def cloneOrPullGitRepo(String repoName) {
-    // This method is deceptively named -- it can also check if a directory exists
+def cloneOrUpdateLocalRepo(String repoName) {
     if(!fileExists(repoName)) {
         sh "git clone ${env.REACTOME_GITHUB_BASE_URL}/${repoName}"
     } else {
