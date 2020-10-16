@@ -2,8 +2,9 @@
 // This step synchronizes Reactome's database with UniProt.
  
 import groovy.json.JsonSlurper
-// Shared library maintained at 'release-jenkins-utils' repository.
 import org.reactome.release.jenkins.utilities.Utilities
+
+// Shared library maintained at 'release-jenkins-utils' repository.
 def utils = new Utilities()
 
 pipeline {
@@ -23,7 +24,7 @@ pipeline {
 			steps{
 				script{
 					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-					    utils.takeDatabaseDumpAndGzip("${env.GK_CENTRAL_DB}", "uniprot_update", "before", "$user", "$pass", "${env.CURATOR_SERVER}")
+					    utils.takeDatabaseDumpAndGzip("${env.GK_CENTRAL_DB}", "uniprot_update", "before", "${env.CURATOR_SERVER}")
 					}
 				}
 			}
@@ -80,10 +81,11 @@ pipeline {
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
-					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${env.RELEASE_VERSION}/uniprot_update"
+				    def releaseVersion = utils.getReleaseVersion();
+					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${releaseVersion}/uniprot_update"
 					sh "mkdir -p databases/ data/ logs/"
 					
-					sh "mv --backup=numbered *_${env.RELEASE_VERSION}_*.dump.gz databases/"
+					sh "mv --backup=numbered *_${releaseVersion}_*.dump.gz databases/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/sequence_uniprot_report.txt data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/reference_DNA_sequence_report.txt data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/duplicated_db_id.txt data/"
