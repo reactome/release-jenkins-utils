@@ -19,16 +19,6 @@ pipeline {
 				}
 			}
 		}
-		// This stage backs up the gk_central database before it is modified.
-		stage('Setup: Back up gk_central before modifications'){
-			steps{
-				script{
-					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-					    utils.takeDatabaseDumpAndGzip("${env.GK_CENTRAL_DB}", "uniprot_update", "before", "${env.CURATOR_SERVER}")
-					}
-				}
-			}
-		}
 		// Download uniprot_sprot.xml.gz and uniprot-reviewed:no.list.gz from UniProt.
 		stage('Setup: Download uniprot_sprot.xml.gz and uniprot-reviewed:no.list.gz'){
 			steps{
@@ -36,6 +26,16 @@ pipeline {
 					sh "wget -q -N ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.xml.gz"
 					sh "wget -q -O uniprot-reviewed:no.list.gz 'http://www.uniprot.org/uniprot/?query=reviewed%3Ano&compress=yes&format=list'"
 					sh "mv uniprot*gz ${env.ABS_RELEASE_PATH}/uniprot_update/"
+				}
+			}
+		}
+		// This stage backs up the gk_central database before it is modified.
+		stage('Setup: Back up gk_central before modifications'){
+			steps{
+				script{
+					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+					    utils.takeDatabaseDumpAndGzip("${env.GK_CENTRAL_DB}", "uniprot_update", "before", "${env.CURATOR_SERVER}")
+					}
 				}
 			}
 		}
