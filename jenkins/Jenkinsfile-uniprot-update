@@ -56,7 +56,7 @@ pipeline {
 			steps{
 				script{
 					withCredentials([usernamePassword(credentialsId: 'mySQLCuratorUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-						utils.takeDatabaseDumpAndGzip("${env.GK_CENTRAL_DB}", "uniprot_update", "after", "$user", "$pass", "${env.CURATOR_SERVER}")
+						utils.takeDatabaseDumpAndGzip("${env.GK_CENTRAL_DB}", "uniprot_update", "after", "${env.CURATOR_SERVER}")
 					}
 				}
 			}
