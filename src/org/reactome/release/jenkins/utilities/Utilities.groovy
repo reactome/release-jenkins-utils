@@ -45,12 +45,12 @@ def checkUpstreamBuildsSucceeded(String stepPath) {
  * @param password - MySQL password
  * @param host - MySQL host
  */
-def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeOrAfter, String host) {
+def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeOrAfter, String databaseHost) {
     def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
     def releaseVersion = getReleaseVersion()
     def filename = "${databaseName}_${releaseVersion}_${beforeOrAfter}_${stepName}_${timestamp}.dump"
     // The user and pass values come from a MySQL credentials 'secret' in Jenkinsfile calling the method.
-    sh "mysqldump -u${user} -p${pass} -h${host} ${databaseName} > ${filename}"
+    sh "mysqldump -u${user} -p${pass} -h${databaseHost} ${databaseName} > ${filename}"
     sh "gzip -f ${filename}"
 }
 
