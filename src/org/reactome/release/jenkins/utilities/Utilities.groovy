@@ -88,3 +88,26 @@ def cloneOrUpdateLocalRepo(String repoName) {
 def buildJarFile() {
     sh "mvn clean compile assembly:single"
 }
+
+def cleanUpAndArchiveBuildFiles(String stepName, List<String> dataFiles, List<String> logFiles) {
+    def releaseVersion = getReleaseVersion()
+    def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${releaseVersion}/${stepName}"
+    sh "mkdir -p databases/ data/ logs/"
+    sh "mv *_${releaseVersion}_*.dump.gz databases/"
+    moveFilesToFolder("data", dataFiles)
+    moveFilesToFolder("logs", logFiles)
+    sh "gzip -rf data/* logs/*"
+
+    sh "aws s3 --no-progress --recursive cp databases/ ${s3Path}/databases/"
+    sh "aws s3 --no-progress --recursive cp logs/ ${s3Path}/logs/"
+    sh "aws s3 --no-progress --recursive cp data/ ${s3Path}/data/"
+
+    sh "rm -r databases logs data reports"
+
+}
+
+def moveFilesToFolder(String folder, List files) {
+    for (String file : files) {
+        sh "mv --backup=numbered ${file} ${folder}"
+    }
+}
