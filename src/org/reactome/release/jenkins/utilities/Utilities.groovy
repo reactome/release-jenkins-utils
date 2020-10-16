@@ -81,3 +81,10 @@ def cloneOrUpdateLocalRepo(String repoName) {
         sh "cd ${repoName}; git pull"
     }
 }
+
+/**
+ * Builds jar file to be executed by Jenkins.
+ */
+def buildJarFile() {
+    sh "mvn clean compile assembly:single"
+}
