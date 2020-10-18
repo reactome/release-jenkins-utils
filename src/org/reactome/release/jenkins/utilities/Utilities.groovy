@@ -100,7 +100,7 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles) 
     def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${releaseVersion}/${stepName}"
 
     sh "mkdir -p databases/ data/ logs/"
-    sh "mv *_${releaseVersion}_*.dump.gz databases/"
+    sh "mv -f *_${releaseVersion}_*.dump.gz databases/"
 
     moveFilesToFolder("data", dataFiles)
     moveFilesToFolder("logs", logFiles)
