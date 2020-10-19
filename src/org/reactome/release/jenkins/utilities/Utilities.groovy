@@ -128,14 +128,10 @@ def moveFilesToFolder(String folder, List files) {
 }
 
 def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondFolderName) {
-    File firstDir = new File(Paths.get(firstFolderName))
-    File secondDir = new File(secondFolderName)
-    Paths.get(firstDir).
-    println firstFolderName
-    println firstDir
-    println firstDir.listFiles()
-    sh "ls -lrt ${firstDir}"
-    for (File file1 : firstDir.eac) {
+    def firstDir = new File(Paths.get(firstFolderName))
+    def secondDir = new File(secondFolderName)
+
+    firstDir.eachFile { file1 ->
         File file2 = secondFolderName + "/" + file1.getName()
         println file1
         println file2
