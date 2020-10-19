@@ -133,7 +133,7 @@ def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondF
     println firstFolderName
     println firstDir
     println firstDir.listFiles()
-    sh "pwd"
+    sh "ls -lrt ${firstDir}"
     for (File file1 : firstDir.listFiles()) {
         File file2 = secondFolderName + "/" + file1.getName()
         println file1
