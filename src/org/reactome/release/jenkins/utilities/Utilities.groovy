@@ -127,20 +127,19 @@ def moveFilesToFolder(String folder, List files) {
     }
 }
 
-def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondFolderName) {
-    def firstDir = new File(Paths.get(firstFolderName))
-    def secondDir = new File(secondFolderName)
+def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondFolderName, String currentDir) {
 
-    firstDir.eachFile { file1 ->
-        def file2 = secondFolderName + "/" + file1.getName()
-        println file1
-        println file2
-        long lineCountFile1 = Files.lines(Paths.get(file1.getPath()));
-        long lineCountFile2 = Files.lines(Paths.get(file2.getPath()));
-        println lineCountFile1
-        println lineCountFile2
-        def lineCountDifferences = lineCountFile1 - lineCountFile2
-        println lineCountDifferences
-        println
+    def firstFiles = findFiles(glob: "${firstFolderName}/*")
+    def secondFiles = findFiles(glob: "${secondFolderName}/*")
+
+    print "Total files in ${firstFolderName}: " + "\t" + firstFiles.size() + "\nTotal files in ${secondFolderName}: " + "\t" + secondFiles.size()
+    print "Line count differences between ${firstFolderName} and ${secondFolderName} files:"
+    
+    for (def firstFile : firstFiles) {
+        def secondFile = "${secondFolderName}" + "/" + firstFile.getName()
+        long firstFileLineCount = Files.lines(Paths.get(currentDir, firstFile.toString())).count()
+        long secondFileLineCount = Files.lines(Paths.get(currentDir, secondFile.toString())).count()
+        long lineCountDifference = firstFileLineCount - secondFileLineCount
+        print firstFile.toString() + "\t" + firstFileLineCount + "\n" + secondFile.toString() + "\t" + secondFileLineCount + "\nDifference: " + lineCountDifference
     }
 }
