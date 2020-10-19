@@ -132,7 +132,7 @@ def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondF
     def secondDir = new File(secondFolderName)
 
     firstDir.eachFile { file1 ->
-        File file2 = secondFolderName + "/" + file1.getName()
+        def file2 = secondFolderName + "/" + file1.getName()
         println file1
         println file2
         long lineCountFile1 = Files.lines(Paths.get(file1.getPath()));
