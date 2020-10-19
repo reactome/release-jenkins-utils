@@ -2,6 +2,9 @@ package org.reactome.release.jenkins.utilities
 
 import groovy.json.JsonSlurper
 
+import java.nio.file.Files
+import java.nio.file.Paths
+
 
 /**
  * @author: jcook
@@ -121,5 +124,23 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles) 
 def moveFilesToFolder(String folder, List files) {
     for (String file : files) {
         sh "mv --backup=numbered ${file} ${folder}"
+    }
+}
+
+def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondFolderName) {
+    def firstDir = new File(firstFolderName)
+    def secondDir = new File(secondFolderName)
+
+    for (File file1 : firstDir.listFiles()) {
+        File file2 = secondFolderName + "/" + file1.getName()
+        println file1
+        println file2
+        long lineCountFile1 = Files.lines(Paths.get(file1.getPath()));
+        long lineCountFile2 = Files.lines(Paths.get(file2.getPath()));
+        println lineCountFile1
+        println lineCountFile2
+        def lineCountDifferences = lineCountFile1 - lineCountFile2
+        println lineCountDifferences
+        println
     }
 }
