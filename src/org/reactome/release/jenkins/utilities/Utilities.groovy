@@ -101,9 +101,9 @@ def buildJarFile() {
 def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles) {
     def releaseVersion = getReleaseVersion()
     def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${releaseVersion}/${stepName}"
-
+    def dbNames = "*_${releaseVersion}_*.dump.gz"
     sh "mkdir -p databases/ data/ logs/"
-    sh "mv -f *_${releaseVersion}_*.dump.gz databases/"
+    sh "if [ -f ${dbNames} ]; then mv *_${releaseVersion}_*.dump.gz databases/; fi"
 
     moveFilesToFolder("data", dataFiles)
     moveFilesToFolder("logs", logFiles)
