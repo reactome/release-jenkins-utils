@@ -130,7 +130,9 @@ def moveFilesToFolder(String folder, List files) {
 def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondFolderName) {
     def firstDir = new File(firstFolderName)
     def secondDir = new File(secondFolderName)
-
+    println "Hello"
+    println firstDir.listFiles()
+    sh "pwd"
     for (File file1 : firstDir.listFiles()) {
         File file2 = secondFolderName + "/" + file1.getName()
         println file1
