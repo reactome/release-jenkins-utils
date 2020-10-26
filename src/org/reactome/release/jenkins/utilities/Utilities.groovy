@@ -21,6 +21,14 @@ def getReleaseVersion() {
 }
 
 /**
+ * Returns the current release version, decremented by 1.
+ * @return - Previous release number, as determined by the directory (eg: 74 - 1 = 73)
+ */
+def getPreviousReleaseVersion() {
+    return getReleaseVersion().toInteger() - 1;
+}
+
+/**
  * Helper method for verifying that prerequisite steps have been run.
  * It queries the Jenkins API and checks that the 'result' property is equal to 'SUCCESS'.
  * An error will be thrown if the 'SUCCESS' message is not found.
@@ -51,10 +59,15 @@ def checkUpstreamBuildsSucceeded(String stepPath) {
 def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeOrAfter, String databaseHost) {
     def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
     def releaseVersion = getReleaseVersion()
-    def filename = "${databaseName}_${releaseVersion}_${beforeOrAfter}_${stepName}_${timestamp}.dump"
+    def databaseFilename = "${databaseName}_${releaseVersion}_${beforeOrAfter}_${stepName}_${timestamp}.dump"
     // The user and pass values come from a MySQL credentials 'secret' in Jenkinsfile calling the method.
-    sh "mysqldump -u${user} -p${pass} -h${databaseHost} ${databaseName} > ${filename}"
-    sh "gzip -f ${filename}"
+    // When using this method, be sure to use the Jenkins 'withCredentials{}' block to instantiate the user/pass variables.
+    takeDatabaseDump("${databaseName}", "${databaseFilename}", "${databaseHost}")
+    sh "gzip -f ${databaseFilename}"
+}
+
+def takeDatabaseDump(String databaseName, String databaseFilename, String databaseHost) {
+    sh "mysqldump -u${user} -p${pass} -h${databaseHost} ${databaseName} > ${databaseFilename}"
 }
 
 /**
@@ -127,19 +140,36 @@ def moveFilesToFolder(String folder, List files) {
     }
 }
 
+/**
+ * Method that takes in two folder names that have their contents compared by line count. For each file that is found
+ * in both folders, it takes a line count of them and outputs it, along with the difference between them.
+ * @param firstFolderName - String, name of first folder whose contents will be compared with the contents of the second folder
+ * @param secondFolderName - String, name of second folder whose contents will be compared with the contents of the first folder
+ * @param currentDir - String, current directories' absolute path. Necessary for getting line counts using 'Files' library.
+ */
 def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondFolderName, String currentDir) {
 
+    // Gets list of files in directories
     def firstFiles = findFiles(glob: "${firstFolderName}/*")
     def secondFiles = findFiles(glob: "${secondFolderName}/*")
 
+    // Output number of files in each directory
     print "Total files in ${firstFolderName}: " + "\t" + firstFiles.size() + "\nTotal files in ${secondFolderName}: " + "\t" + secondFiles.size()
     print "Line count differences between ${firstFolderName} and ${secondFolderName} files:"
-    
+
     for (def firstFile : firstFiles) {
         def secondFile = "${secondFolderName}" + "/" + firstFile.getName()
+        // Get line counts of the file found in both the first and second folder
         long firstFileLineCount = Files.lines(Paths.get(currentDir, firstFile.toString())).count()
         long secondFileLineCount = Files.lines(Paths.get(currentDir, secondFile.toString())).count()
+        // Get difference between line counts
         long lineCountDifference = firstFileLineCount - secondFileLineCount
+        // Output the line counts and difference
         print firstFile.toString() + "\t" + firstFileLineCount + "\n" + secondFile.toString() + "\t" + secondFileLineCount + "\nDifference: " + lineCountDifference
     }
+}
+
+def replaceDatabase(String databaseToBeReplaced, String replacingDatabaseFilename) {
+    sh "mysql -u${user} -p${pass} -e \'drop database if exists ${databaseToBeReplaced}; create database ${databaseToBeReplaced}\'"
+    sh  "zcat  ${replacingDatabaseFilename} | mysql -u${user} -p${pass} ${databaseToBeReplaced}"
 }
