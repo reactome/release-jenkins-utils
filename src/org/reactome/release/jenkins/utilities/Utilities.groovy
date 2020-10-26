@@ -64,6 +64,7 @@ def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeO
     // When using this method, be sure to use the Jenkins 'withCredentials{}' block to instantiate the user/pass variables.
     takeDatabaseDump("${databaseName}", "${databaseFilename}", "${databaseHost}")
     sh "gzip -f ${databaseFilename}"
+    return "${databaseFilename}.gz"
 }
 
 def takeDatabaseDump(String databaseName, String databaseFilename, String databaseHost) {
@@ -171,5 +172,5 @@ def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondF
 
 def replaceDatabase(String databaseToBeReplaced, String replacingDatabaseFilename) {
     sh "mysql -u${user} -p${pass} -e \'drop database if exists ${databaseToBeReplaced}; create database ${databaseToBeReplaced}\'"
-    sh  "zcat  ${replacingDatabaseFilename} | mysql -u${user} -p${pass} ${databaseToBeReplaced}"
+    sh "zcat  ${replacingDatabaseFilename} | mysql -u${user} -p${pass} ${databaseToBeReplaced}"
 }
