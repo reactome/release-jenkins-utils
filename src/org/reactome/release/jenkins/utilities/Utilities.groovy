@@ -144,7 +144,7 @@ def moveFilesToFolder(String folder, List files) {
 
 def deleteFolders(List foldersToDelete) {
     for (String folder : foldersToDelete) {
-        sh "rm -rf ${folder}"
+        sh "if [ -f ${folder}* ]; then gzip -rf ${folder}*; fi"
     }
 }
 
