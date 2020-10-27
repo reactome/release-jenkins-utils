@@ -127,7 +127,7 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
     sh "aws s3 --no-progress --recursive cp logs/ ${s3Path}/logs/"
     sh "aws s3 --no-progress --recursive cp data/ ${s3Path}/data/"
 
-    foldersToDelete.addAll(foldersToDelete)
+    foldersToDelete.addAll("databases", "logs", "data")
     deleteFolders(foldersToDelete)
 }
 
