@@ -112,7 +112,7 @@ def buildJarFile() {
  * @param dataFiles - Data files to be moved to data folder
  * @param logFiles  - Log files to be moved to the logs folder
  */
-def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles) {
+def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, List foldersToDelete) {
     def releaseVersion = getReleaseVersion()
     def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${releaseVersion}/${stepName}"
     def dbNames = "*_${releaseVersion}_*.dump.gz"
@@ -127,7 +127,8 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles) 
     sh "aws s3 --no-progress --recursive cp logs/ ${s3Path}/logs/"
     sh "aws s3 --no-progress --recursive cp data/ ${s3Path}/data/"
 
-    sh "rm -r databases logs data"
+    foldersToDelete.addAll(foldersToDelete)
+    deleteFolders(foldersToDelete)
 }
 
 /**
@@ -138,6 +139,12 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles) 
 def moveFilesToFolder(String folder, List files) {
     for (String file : files) {
         sh "mv --backup=numbered ${file} ${folder}"
+    }
+}
+
+def deleteFolders(List foldersToDelete) {
+    for (String folder : foldersToDelete) {
+        sh "rm -rf ${folder}"
     }
 }
 
