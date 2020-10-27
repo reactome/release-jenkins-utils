@@ -121,7 +121,9 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
 
     moveFilesToFolder("data", dataFiles)
     moveFilesToFolder("logs", logFiles)
-    sh "gzip -rf data/* logs/*"
+
+    gzipFolderContents("data/")
+    gzipFolderContents("logs/")
 
     sh "aws s3 --no-progress --recursive cp databases/ ${s3Path}/databases/"
     sh "aws s3 --no-progress --recursive cp logs/ ${s3Path}/logs/"
@@ -142,9 +144,13 @@ def moveFilesToFolder(String folder, List files) {
     }
 }
 
+def gzipFolderContents(String folder) {
+    sh "if [ -f ${folder}* ]; then gzip -rf ${folder}*; fi"
+}
+
 def deleteFolders(List foldersToDelete) {
     for (String folder : foldersToDelete) {
-        sh "if [ -f ${folder}* ]; then gzip -rf ${folder}*; fi"
+        sh "rm -rf ${folder}"
     }
 }
 
