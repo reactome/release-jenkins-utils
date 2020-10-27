@@ -115,22 +115,23 @@ def buildJarFile() {
 def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, List foldersToDelete) {
     def releaseVersion = getReleaseVersion()
     def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${releaseVersion}/${stepName}"
-    def dbFiles = findFiles(glob: "*_${releaseVersion}_*.dump.gz")
 
     sh "mkdir -p databases/ data/ logs/"
+    List dbFiles = findFiles(glob: "*_${releaseVersion}_*.dump.gz")
 
+    moveFilesToFolder("databases", dbFiles)
     moveFilesToFolder("data", dataFiles)
     moveFilesToFolder("logs", logFiles)
-    moveFilesToFolder("databases", dbFiles)
 
     gzipFolderContents("data/")
     gzipFolderContents("logs/")
 
     sh "aws s3 --no-progress --recursive cp databases/ ${s3Path}/databases/"
-    sh "aws s3 --no-progress --recursive cp logs/ ${s3Path}/logs/"
     sh "aws s3 --no-progress --recursive cp data/ ${s3Path}/data/"
+    sh "aws s3 --no-progress --recursive cp logs/ ${s3Path}/logs/"
 
-    foldersToDelete.addAll("databases", "logs", "data")
+
+    foldersToDelete.addAll("databases", "data", "logs")
     deleteFolders(foldersToDelete)
 }
 
