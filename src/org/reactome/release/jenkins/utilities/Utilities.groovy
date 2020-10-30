@@ -87,6 +87,15 @@ def sendEmailWithAttachment(String emailSubject, String emailBody, String emailA
     )
 }
 
+def sendEmail(String emailSubject, String emailBody) {
+    emailext (
+            body: "${emailBody}",
+            to: '$DEFAULT_RECIPIENTS',
+            from: "${env.JENKINS_RELEASE_EMAIL}",
+            subject: "${emailSubject}"
+    )
+}
+
 /**
  * Helper method for cloning or pulling a github repository.
  * @param repoName - Base name of github repository that exists in the Reactome github project.
