@@ -156,7 +156,7 @@ def moveFilesToFolder(String folder, List files) {
 }
 
 def gzipFolderContents(String folder) {
-    sh $/if [ "$(ls -A ${folder})" ]; then gzip -rf ${folder}*; fi/$
+    sh /if [ "$(ls -A ${folder})" ]; then gzip -rf ${folder}*; fi/
 }
 
 def deleteFolders(List foldersToDelete) {
