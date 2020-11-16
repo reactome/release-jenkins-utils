@@ -135,13 +135,13 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
     gzipFolderContents("data/")
     gzipFolderContents("logs/")
 
-    sh "aws s3 --no-progress --recursive cp databases/ ${s3Path}/databases/"
-    sh "aws s3 --no-progress --recursive cp data/ ${s3Path}/data/"
-    sh "aws s3 --no-progress --recursive cp logs/ ${s3Path}/logs/"
-
-
-    foldersToDelete.addAll("databases", "data", "logs")
-    deleteFolders(foldersToDelete)
+//    sh "aws s3 --no-progress --recursive cp databases/ ${s3Path}/databases/"
+//    sh "aws s3 --no-progress --recursive cp data/ ${s3Path}/data/"
+//    sh "aws s3 --no-progress --recursive cp logs/ ${s3Path}/logs/"
+//
+//
+//    foldersToDelete.addAll("databases", "data", "logs")
+//    deleteFolders(foldersToDelete)
 }
 
 /**
