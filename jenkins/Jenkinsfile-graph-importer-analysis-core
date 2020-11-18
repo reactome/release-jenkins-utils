@@ -42,7 +42,7 @@ pipeline {
 						utils.buildJarFile()
 						// This generates the graph database.
 						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-							sh "java -jar target/GraphImporter-jar-with-dependencies.jar --name ${env.RELEASE_CURRENT_DB} --user $user --password $pass --neo4j /tmp/graph.db --interactions"
+							sh "java -jar target/GraphImporter-jar-with-dependencies.jar --name ${env.REACTOME_DB} --user $user --password $pass --neo4j /tmp/graph.db --interactions"
 							sh "cp -r /tmp/graph.db/ ."
 							sh "sudo service tomcat7 stop"
 							sh "sudo service neo4j stop"
