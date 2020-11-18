@@ -1,29 +1,19 @@
-import groovy.json.JsonSlurper
 // This Jenkinsfile is used by Jenkins to run the GenerateGraphDatabaseAndAnalysisCore step of Reactome's release.
 // It requires that the BioModels step has been run successfully before it can be run.
-def currentRelease
-def previousRelease
+
+import org.reactome.release.jenkins.utilities.Utilities
+
+// Shared library maintained at 'release-jenkins-utils' repository.
+def utils = new Utilities()
 pipeline {
 	agent any
 
 	stages {
-
              // This stage checks that an upstream project, BioModels, was run successfully for its last build.
 		stage('Check BioModels build succeeded'){
 			steps{
 				script{
-					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
-					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
-					// This queries the Jenkins API to confirm that the most recent build of BioModels was successful.
-					def BioModelsStatusUrl = httpRequest authentication: 'jenkinsKey', validResponseCodes: "${env.VALID_RESPONSE_CODES}", url: "${env.JENKINS_JOB_URL}/job/${currentRelease}/job/Relational-Database-Updates/job/BioModels/lastBuild/api/json"
-					if (BioModelsStatusUrl.getStatus() == 404) {
-						error("BioModels has not yet been run. Please complete a successful build.")
-					} else {
-						def BioModelsJson = new JsonSlurper().parseText(BioModelsStatusUrl.getContent())
-						if(BioModelsJson['result'] != "SUCCESS"){
-							error("Most recent BioModels build status: " + BioModelsJson['result'] + ". Please complete a successful build.")
-						}
-					}
+					utils.checkUpstreamBuildsSucceeded("Relational-Database-Updates/job/BioModels")
 				}
 			}
 		}
@@ -32,35 +22,34 @@ pipeline {
 			steps{
 				script{
 					withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]) {
-						def release_current_final_dump = "${env.RELEASE_CURRENT}_${currentRelease}_final.dump"
-						sh "mysqldump -u$user -p$pass ${env.RELEASE_CURRENT} > ${release_current_final_dump}"
-						sh "gzip -f ${release_current_final_dump}"
-						sh "mysql -u$user -p$pass -e \'drop database if exists ${env.REACTOME}; create database ${env.REACTOME}\'"
-						sh "zcat ${release_current_final_dump}.gz | mysql -u$user -p$pass ${env.REACTOME}"
+						def releaseCurrentDumpName = utils.takeDatabaseDumpAndGzip("${env.RELEASE_CURRENT_DB}", "generate_graph_db_and_analysis_core", "before", "${env.RELEASE_SERVER}")
+						utils.replaceDatabase("${env.REACTOME_DB}", "${releaseCurrentDumpName}")
 					}
 				}
 			}
 		}
 		// This stage generates the graph database using the graph-importer module, and replaces the current graph db with it.
-		stage('Setup: Generate Graph Database'){
+		stage('Main: Generate Graph Database'){
 			steps{
 				script{
-					sh "cp -f scripts/changeGraphDatabase.sh ${env.JENKINS_HOME_PATH}"
-					sh "chmod 700 ${env.JENKINS_HOME_PATH}changeGraphDatabase.sh"
-					cloneOrPullGitRepo("graph-importer")
+					// Gets a copy of 'changeGraphDatabase', which Jenkins can execute as sudo. Changes permissions of file to user read/write only.
+					utils.cloneOrUpdateLocalRepo("release-jenkins-utils")
+					sh "cp -f release-jenkins-utils/scripts/changeGraphDatabase.sh ${env.JENKINS_HOME_PATH}"
+					sh "chmod 700 ${env.JENKINS_HOME_PATH}/changeGraphDatabase.sh"
+					utils.cloneOrUpdateLocalRepo("graph-importer")
+					
 					dir("graph-importer"){
-						sh "mvn clean compile assembly:single"
+						utils.buildJarFile()
+						// This generates the graph database.
 						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-							sh "java -jar target/GraphImporter-jar-with-dependencies.jar --name ${env.REACTOME} --user $user --password $pass --neo4j ./graph.db --interactions"
-							sh "tar -zcf reactome.graphdb.tgz graph.db/"
-							sh "mv graph.db /tmp/"
+							sh "java -jar target/GraphImporter-jar-with-dependencies.jar --name ${env.RELEASE_CURRENT_DB} --user $user --password $pass --neo4j /tmp/graph.db --interactions"
 							sh "sudo service tomcat7 stop"
 							sh "sudo service neo4j stop"
 							// This static script adjusts permissions of the graph.db folder and moves it to /var/lib/neo4j/data/databases/.
-							sh "sudo bash ${env.JENKINS_HOME_PATH}changeGraphDatabase.sh"
+							sh "sudo bash ${env.JENKINS_HOME_PATH}/changeGraphDatabase.sh"
 							sh "sudo service neo4j start"
 							sh "sudo service tomcat7 start"
-							sh "rm ${env.JENKINS_HOME_PATH}changeGraphDatabase.sh"
+							sh "rm ${env.JENKINS_HOME_PATH}/changeGraphDatabase.sh"
 						}
 					}
 				}
@@ -70,9 +59,9 @@ pipeline {
 		stage('Post: Run graph-qa'){
 			steps{
 				script{
-					cloneOrPullGitRepo("graph-qa")
+					utils.cloneOrUpdateLocalRepo("graph-qa")
 					dir("graph-qa"){
-						sh "mvn clean compile assembly:single"
+						utils.buildJarFile()
 						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
 							sh "java -jar target/graph-qa-jar-with-dependencies.jar -u $user -p  $pass --verbose"
 						}
@@ -81,13 +70,14 @@ pipeline {
 			}
 		}
 		// Creates final analysis core file that will be used by the analysis service on production.
-		stage('Setup: Generate Analysis.bin file'){
+		stage('Main: Generate Analysis.bin file'){
 			steps{
 				script{
-					cloneOrPullGitRepo("analysis-core")
+					def releaseVersion = utils.getReleaseVersion()
+					utils.cloneOrUpdateLocalRepo("analysis-core")
 					dir("analysis-core"){
-						def analysisBinName = "analysis_v${currentRelease}.bin"
-						sh "mvn clean compile assembly:single"
+						def analysisBinName = "analysis_v${releaseVersion}.bin"
+						utils.buildJarFile()
 						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
 							sh "java -jar target/analysis-core-jar-with-dependencies.jar --user $user --password $pass --output ./${analysisBinName} --verbose"
 						}
@@ -104,20 +94,17 @@ pipeline {
 		stage('Post: Email graph-qa output'){
 			steps{
 				script{
-					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
-					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
+					def releaseVersion = utils.getReleaseVersion()
+					def previousReleaseVersion = utils.getPreviousReleaseVersion()
+					
+					def emailSubject = "v${releaseVersion} graph database available on release.reactome.org"
+					def emailBody = "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${releaseVersion}. The relational database updates have completed and the graph database has been generated. It should be visible at https://release.reactome.org. This is NOT the final release email. \n\nv${releaseVersion} data is visible in: \n\t- Details pages\n\t- Analysis service \n\t- Content service \n\nv${previousReleaseVersion} data is still visible in: \n\t- Downloadable files \n\t- Searching \n\t- Diagrams \n\nYou can navigate the Pathway Browser as well to see details, though just be aware that new/updated diagrams are not yet visible. Please notify the developer running release if you notice any issues. Do NOT reply to this email. \n\nThanks!"
+					def emailAttachment = "graph-qa/reports/GraphQA_Summary_v${currentRelease}.csv"
 
-					emailext (
-						body: "Hello,\n\nThis is an automated message from Jenkins regarding an update for v${currentRelease}. The relational database updates have completed and the graph database has been generated. It should be visible at https://release.reactome.org. This is NOT the final release email. \n\nCurrent release data (v${currentRelease}) is visible in: \n\t- Details pages\n\t- Analysis service \n\t- Content service \n\nPrevious release data (v${previousRelease}) is still visible in: \n\t- Downloadable files \n\t- Searching \n\t- Diagrams \n\nYou can navigate the Pathway Browser as well to see details, though just be aware that new/updated diagrams are not yet visible. Please notify the developer running release if you notice any issues. Do NOT reply to this email. \n\nThanks!",
-						to: '$DEFAULT_RECIPIENTS',
-						from: "${env.JENKINS_RELEASE_EMAIL}",
-						subject: "v${currentRelease} graph database available on release.reactome.org",
-						attachmentsPattern: "**/graph-qa/reports/GraphQA_Summary_v${currentRelease}.csv"
-					)
+					utils.sendEmailWithAttachment("$emailSubject", "$emailBody", "$emailAttachments")
 				}
 			}
 		}
-
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
@@ -147,14 +134,5 @@ pipeline {
 				}
 			}
 		}
-	}
-}
-// Utility function that checks if a git directory exists. If not, it is cloned.
-def cloneOrPullGitRepo(String repoName) {
-	// This method is deceptively named -- it can also check if a directory exists
-	if(!fileExists(repoName)) {
-		sh "git clone ${env.REACTOME_GITHUB_BASE_URL}/${repoName}"
-	} else {
-		sh "cd ${repoName}; git pull"
 	}
 }
