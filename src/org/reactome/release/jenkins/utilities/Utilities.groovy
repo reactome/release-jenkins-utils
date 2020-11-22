@@ -57,7 +57,7 @@ def checkUpstreamBuildsSucceeded(String stepPath) {
  * @param host - MySQL host
  */
 def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeOrAfter, String databaseHost) {
-    def timestamp = new Date().format("yyyy-MM-dd-HHmmss")
+    def timestamp = getTimestamp()
     def releaseVersion = getReleaseVersion()
     def databaseFilename = "${databaseName}_${releaseVersion}_${beforeOrAfter}_${stepName}_${timestamp}.dump"
     // The user and pass values come from a MySQL credentials 'secret' in Jenkinsfile calling the method.
@@ -65,6 +65,15 @@ def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeO
     takeDatabaseDump("${databaseName}", "${databaseFilename}", "${databaseHost}")
     sh "gzip -f ${databaseFilename}"
     return "${databaseFilename}.gz"
+}
+
+def createGraphDatabaseTarFile(String graphDbFolder, String stepName) {
+    def timestamp = getTimestamp()
+    sh "tar -zcvf ${stepName}_graph_datbase.dump_${timestamp}.tgz ${graphDbFolder}"
+}
+
+def getTimestamp(){
+    return new Date().format("yyyy-MM-dd-HHmmss")
 }
 
 def takeDatabaseDump(String databaseName, String databaseFilename, String databaseHost) {
