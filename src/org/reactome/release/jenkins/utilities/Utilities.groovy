@@ -70,6 +70,7 @@ def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeO
 def createGraphDatabaseTarFile(String graphDbFolder, String stepName) {
     def timestamp = getTimestamp()
     sh "tar -zcvf ${stepName}_graph_datbase.dump_${timestamp}.tgz ${graphDbFolder}"
+    sh "rm -r ${graphDbFolder}"
 }
 
 def getTimestamp(){
