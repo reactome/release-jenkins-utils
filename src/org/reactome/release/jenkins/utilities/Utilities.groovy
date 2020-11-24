@@ -137,7 +137,8 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
 
     sh "mkdir -p databases/ data/ logs/"
     List dbFiles = findFiles(glob: "*_${releaseVersion}_*.dump.gz")
-
+    dbFiles.addAll(findFiles(glob: "${stepName}_graph_database.dump*tgz"))
+    
     moveFilesToFolder("databases", dbFiles)
     moveFilesToFolder("data", dataFiles)
     moveFilesToFolder("logs", logFiles)
