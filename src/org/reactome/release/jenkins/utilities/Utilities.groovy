@@ -138,7 +138,7 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
     sh "mkdir -p databases/ data/ logs/"
     List dbFiles = findFiles(glob: "*_${releaseVersion}_*.dump.gz")
     dbFiles.addAll(findFiles(glob: "${stepName}_graph_database.dump*tgz"))
-    
+
     moveFilesToFolder("databases", dbFiles)
     moveFilesToFolder("data", dataFiles)
     moveFilesToFolder("logs", logFiles)
@@ -195,14 +195,19 @@ def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondF
     print "Line count differences between ${firstFolderName} and ${secondFolderName} files:"
 
     for (def firstFile : firstFiles) {
-        def secondFile = "${secondFolderName}" + "/" + firstFile.getName()
-        // Get line counts of the file found in both the first and second folder
-        long firstFileLineCount = Files.lines(Paths.get(currentDir, firstFile.toString())).count()
-        long secondFileLineCount = Files.lines(Paths.get(currentDir, secondFile.toString())).count()
-        // Get difference between line counts
-        long lineCountDifference = firstFileLineCount - secondFileLineCount
-        // Output the line counts and difference
-        print firstFile.toString() + "\t" + firstFileLineCount + "\n" + secondFile.toString() + "\t" + secondFileLineCount + "\nDifference: " + lineCountDifference
+        try {
+            def secondFile = "${secondFolderName}" + "/" + firstFile.getName()
+            // Get line counts of the file found in both the first and second folder
+            long firstFileLineCount = Files.lines(Paths.get(currentDir, firstFile.toString())).count()
+            long secondFileLineCount = Files.lines(Paths.get(currentDir, secondFile.toString())).count()
+            // Get difference between line counts
+            long lineCountDifference = firstFileLineCount - secondFileLineCount
+            // Output the line counts and difference
+            print firstFile.toString() + "\t" + firstFileLineCount + "\n" + secondFile.toString() + "\t" + secondFileLineCount + "\nDifference: " + lineCountDifference
+        } catch (Exception e) {
+            e.printStackTrace()
+            echo("\nWARNING: Files with version numbers (eg: v74) in their name will need to be checked manually!\n")
+        }
     }
 }
 
