@@ -206,7 +206,7 @@ def outputLineCountsOfFilesBetweenFolders(String firstFolderName, String secondF
             print firstFile.toString() + "\t" + firstFileLineCount + "\n" + secondFile.toString() + "\t" + secondFileLineCount + "\nDifference: " + lineCountDifference
         } catch (Exception e) {
             e.printStackTrace()
-            echo("\nWARNING: Files with version numbers (eg: v74) in their name will need to be checked manually!\n")
+            echo("\nWARNING: ${firstFile} does not exist in the previous release. This might be due to the name changing or the file being removed. Please check manually.")
         }
     }
 }
