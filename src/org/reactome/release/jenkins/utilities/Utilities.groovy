@@ -68,6 +68,16 @@ def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeO
 }
 
 /**
+ * Method for taking a MySQL database dump.
+ * @param databaseName - String, name of database.
+ * @param databaseFilename - String, name of dump file that will be made.
+ * @param databaseHost - String, host of MySQL server.
+ */
+def takeDatabaseDump(String databaseName, String databaseFilename, String databaseHost) {
+    sh "mysqldump -u${user} -p${pass} -h${databaseHost} ${databaseName} > ${databaseFilename}"
+}
+
+/**
  * Method for storing a graph database folder into a tar archive.
  * @param graphDbFolder - String, name of graph db folder being archived
  * @param stepName - String, name of step that is being run currently. The archive will use it in its name.
@@ -84,16 +94,6 @@ def createGraphDatabaseTarFile(String graphDbFolder, String stepName) {
  */
 def getTimestamp(){
     return new Date().format("yyyy-MM-dd-HHmmss")
-}
-
-/**
- * Method for taking a MySQL database dump.
- * @param databaseName - String, name of database.
- * @param databaseFilename - String, name of dump file that will be made.
- * @param databaseHost - String, host of MySQL server.
- */
-def takeDatabaseDump(String databaseName, String databaseFilename, String databaseHost) {
-    sh "mysqldump -u${user} -p${pass} -h${databaseHost} ${databaseName} > ${databaseFilename}"
 }
 
 /**
