@@ -12,13 +12,13 @@ pipeline{
 				// This is a locally-scoped secret file accessed at Jenkins -> Releases -> ## (release number) -> Credentials -> Config
 				script{
 					def userInput = input(
-					id: 'userInput', message: "Has the Config file credentials been updated for this release?",
+					id: 'userInput', message: "Have the Config file credentials been updated for this release (y/n)? If unsure, check Release documentation (enter 'n' to abort here, if desired).",
 					parameters: [
 												[$class: 'TextParameterDefinition', defaultValue: '', name: 'response']
 											])
 
 					if (!userInput.toLowerCase().startsWith("y")){
-						error("Please update the config file for this release and upload it in Jenkins as a secret file credential. Please have the credential scoped to this folder.")
+						error("Please update the config file for this release and upload it in Jenkins as a secret file credential. Please have the credential scoped to this folder. If unsure, check Release documentation (enter 'n' to abort here, if desired).")
 					}
 				}
 				dir('scripts'){
@@ -31,10 +31,10 @@ pipeline{
 													[$class: 'TextParameterDefinition', defaultValue: '', name: 'response']
 												])
 												
-						def currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
-						def previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
+						def currentJenkinsReleaseNumber = (pwd() =~ /Releases\/(\d+)\//)[0][1];
+						def previousJenkinsReleaseNumber = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
 						withCredentials([file(credentialsId: 'Config', variable: 'ConfigFile')]){
-							sh "bash confirmJenkinsConfigurations.sh --config $ConfigFile --env-release-current ${currentRelease} --env-release-previous ${previousRelease} --user-release $userReleaseNumber"
+							sh "bash confirmJenkinsConfigurations.sh --config-file $ConfigFile --jenkins-current-release-number ${currentJenkinsReleaseNumber} --jenkins-previous-release-number ${previousJenkinsReleaseNumber} --user-release-number $userReleaseNumber"
 						}
 					}
 				}
