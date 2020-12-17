@@ -5,6 +5,7 @@ import org.reactome.release.jenkins.utilities.Utilities
 
 // Shared library maintained at 'release-jenkins-utils' repository.
 def utils = new Utilities()
+
 pipeline {
 	agent any
 
@@ -39,7 +40,9 @@ pipeline {
 					utils.cloneOrUpdateLocalRepo("graph-importer")
 					
 					dir("graph-importer"){
+						// Bulds jar file for graph-importer
 						utils.buildJarFile()
+						
 						// This generates the graph database.
 						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
 							sh "java -jar target/GraphImporter-jar-with-dependencies.jar --name ${env.REACTOME_DB} --user $user --password $pass --neo4j /tmp/graph.db --interactions"
@@ -62,7 +65,9 @@ pipeline {
 				script{
 					utils.cloneOrUpdateLocalRepo("graph-qa")
 					dir("graph-qa"){
+						// Build jar file for graph-qa repository.
 						utils.buildJarFile()
+						
 						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
 							sh "java -jar target/graph-qa-jar-with-dependencies.jar -u $user -p  $pass --verbose"
 						}
@@ -76,8 +81,10 @@ pipeline {
 				script{
 					def releaseVersion = utils.getReleaseVersion()
 					utils.cloneOrUpdateLocalRepo("analysis-core")
+					
 					dir("analysis-core"){
 						def analysisBinName = "analysis_v${releaseVersion}.bin"
+						// Builds jar file for analysis-core repository.
 						utils.buildJarFile()
 						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
 							sh "java -jar target/analysis-core-jar-with-dependencies.jar --user $user --password $pass --output ./${analysisBinName} --verbose"
@@ -105,11 +112,13 @@ pipeline {
 				}
 			}
 		}
+		// Archive everything produced by this step on S3.
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
 				    	def releaseVersion = utils.getReleaseVersion()
 					
+					// Creates tar archive out of 'graph.db/' folder that exists in graph-importer folder.
 					dir("graph-importer"){
 				        	utils.createGraphDatabaseTarFile("graph.db/", "graph_db_analysis_core")
 				    	}
