@@ -1,38 +1,20 @@
 import groovy.json.JsonSlurper
 // This Jenkinsfile is used by Jenkins to run the DataExporter step of Reactome's release.
-// It requires that the --- step has been run successfully before it can be run.
-def currentRelease
-def previousRelease
+
+import org.reactome.release.jenkins.utilities.Utilities
+
+// Shared library maintained at 'release-jenkins-utils' repository.
+def utils = new Utilities()
+
 pipeline {
 	agent any
 
 	stages {
-  		// This stage checks that an upstream project, ---, was run successfully for its last build.
-		stage('Check --- build succeeded'){
-			steps{
-				script{
-					currentRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1];
-					previousRelease = (pwd() =~ /Releases\/(\d+)\//)[0][1].toInteger() - 1;
-					/*
-					// This queries the Jenkins API to confirm that the most recent build of OrthoinferenceStableIdentifierHistory was successful.
-					def OrthoinferenceStableIdentifierHistoryStatusUrl = httpRequest authentication: 'jenkinsKey', validResponseCodes: "${env.VALID_RESPONSE_CODES}", url: "${env.JENKINS_JOB_URL}/job/${currentRelease}/job/Relational-Database-Updates/job/OrthoinferenceStableIdentifierHistory/lastBuild/api/json"
-					if (OrthoinferenceStableIdentifierHistoryStatusUrl.getStatus() == 404) {
-						error("OrthoinferenceStableIdentifierHistory has not yet been run. Please complete a successful build.")
-					} else {
-						def OrthoinferenceStableIdentifierHistoryJson = new JsonSlurper().parseText(OrthoinferenceStableIdentifierHistoryStatusUrl.getContent())
-						if(OrthoinferenceStableIdentifierHistoryJson['result'] != "SUCCESS"){
-							error("Most recent OrthoinferenceStableIdentifierHistory build status: " + OrthoinferenceStableIdentifierHistoryJson['result'] + ". Please complete a successful build.")
-						}
-					}
-					*/
-				}
-			}
-		}
 		stage('Setup: Clone Data-Exporter repo and build jar file') {
 			steps{
 				script{
 					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
-						cloneOrPullGitRepo("release-data-exporter")
+						utils.cloneOrUpdateLocalRepo("release-data-exporter")
 						sh "cd release-data-exporter; mvn clean package"
 					}
 				}
@@ -50,6 +32,7 @@ pipeline {
 				}
 			}
 		}
+		/*
 		stage('Main: Upload NCBI data'){
 			steps{
 				script{
@@ -68,12 +51,13 @@ pipeline {
 				}
 			}
 		}
+		*/
 		stage('Main: Run Hapmap script'){
 			steps{
 				script{
 					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
 						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-							sh "perl 1haprefseq.pl -user $user -pass $pass -db ${env.RELEASE_CURRENT}"
+							sh "perl 1haprefseq.pl -user $user -pass $pass -db ${env.RELEASE_CURRENT_DB}"
 						}
 					}
 				}
