@@ -18,34 +18,16 @@ pipeline {
 				}
 			}
 		}
-		/*
+		// TODO: email file
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
-					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${currentRelease}/biomodels"
-					def biomodelsPath = "${env.ABS_RELEASE_PATH}/biomodels"
-					sh "mkdir -p databases/ data/"
-					sh "mv --backup=numbered *_${currentRelease}_*.dump.gz databases/"
-					sh "mv graph-importer/logs/* logs/"
-					sh "mv analysis-core/logs/* logs/"
-					sh "mv ${biomodelsPath}/logs/* logs/"
-					sh "mv ${biomodelsPath}/jsbml.log logs/"
-					sh "mv ${biomodelsPath}/models2pathways.tsv data/"
-					sh "mv analysis-core/analysis-biomodels-v${currentRelease}.bin data/"
-					sh "mv /tmp/intact-micluster.txt data/"
-					sh "gzip data/* logs/*"
-					sh "mv graph-importer/graphdb_${currentRelease}_biomodels.tgz data/"
-					sh "mv ${biomodelsPath}/BioModels_Database-*sbml_files.tar.bz2 data/"
-					sh "aws s3 --no-progress --recursive cp databases/ $s3Path/databases/"
-					sh "aws s3 --no-progress --recursive cp logs/ $s3Path/logs/"
-					sh "aws s3 --no-progress --recursive cp data/ $s3Path/data/"
-					sh "rm -r databases logs data ${biomodelsPath}/BioModels_Database-*-sbml_files"
-					sh "rm -rf graph-importer*"
-					sh "rm -rf analysis-core*"
-					sh "rm -rf release-jenkins-utils*"
+					def dataFiles = ["${env.ABS_RELEASE_PATH}/website_files_update/UnUsedUniProts*.txt"]
+					def logFiles = []
+					def foldersToDelete = []
+					utils.cleanUpAndArchiveBuildFiles("uncurated_proteins", dataFiles, logFiles, foldersToDelete)
 				}
 			}
 		}
-		*/
 	}		
 }
