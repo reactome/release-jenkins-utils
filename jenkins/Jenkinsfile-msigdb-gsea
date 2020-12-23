@@ -30,7 +30,7 @@ pipeline {
 					def dataFiles = ["${env.ABS_RELEASE_PATH}/msigdb-gsea/Reactome_GeneSet_${releaseVersion}.txt"]
 					def logFiles = []
 					def foldersToDelete = []
-					utils.cleanUpAndArchiveBuildFiles("msigdb-gsea", dataFiles, logFiles, foldersToDelete)
+					utils.cleanUpAndArchiveBuildFiles("msigdb_gsea", dataFiles, logFiles, foldersToDelete)
 					
 				}
 			}
