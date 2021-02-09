@@ -8,6 +8,5 @@ chmod 644 ${tmpNeo4jDir}/*
 chmod a+x ${tmpNeo4jDir}/schema/
 chown -R neo4j:adm ${tmpNeo4jDir}/
 
-mkdir -p ${finalNeo4jDir}/extra
-mv -t ${finalNeo4jDir}/graph.db ${finalNeo4jDir}/extra/
-mv -t ${tmpNeo4jDir} ${finalNeo4jDir}/
+rm -r ${finalNeo4jDir}/graph.db
+mv ${tmpNeo4jDir} ${finalNeo4jDir}/
