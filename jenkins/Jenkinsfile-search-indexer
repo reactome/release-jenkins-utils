@@ -37,9 +37,10 @@ pipeline{
 		stage('Main: Run Search-Indexer'){
 			steps{
 				script{
+					def releaseVersion = utils.getReleaseVersion()
 					withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'neo4jPass', usernameVariable: 'neo4jUser')]){
 						withCredentials([usernamePassword(credentialsId: 'solrUsernamePassword', passwordVariable: 'solrPass', usernameVariable: 'solrUser')]){
-							sh "./scripts/run-indexer.sh solrpass=${solrPass} neo4jpass=${neo4jPass} iconsdir=${env.ICONS_ABS_PATH} ehlddir=${env.ABS_DOWNLOAD_PATH}/${currentRelease}/ehld/ maildest=${env.RELEASE_DEVELOPER_EMAIL}"
+							sh "./scripts/run-indexer.sh solrpass=${solrPass} neo4jpass=${neo4jPass} iconsdir=${env.ICONS_ABS_PATH} ehlddir=${env.ABS_DOWNLOAD_PATH}/${releaseVersion}/ehld/ maildest=${env.RELEASE_DEVELOPER_EMAIL}"
 						}
 					}
 				}
