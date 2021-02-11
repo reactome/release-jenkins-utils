@@ -28,9 +28,7 @@ pipeline{
 		stage('Setup: Build jar file'){
 			steps{
 				script{
-					dir("search-indexer"){
-						sh "mvn clean package"
-					}
+					sh "mvn clean package"
 				}
 			}
 		}
@@ -39,11 +37,9 @@ pipeline{
 		stage('Main: Run Search-Indexer'){
 			steps{
 				script{
-					dir("search-indexer"){
-						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'neo4jPass', usernameVariable: 'neo4jUser')]){
-							withCredentials([usernamePassword(credentialsId: 'solrUsernamePassword', passwordVariable: 'solrPass', usernameVariable: 'solrUser')]){
-								sh "./scripts/run-indexer.sh solrpass=${solrPass} neo4jpass=${neo4jPass} iconsdir=${env.ICONS_ABS_PATH} ehlddir=${env.ABS_DOWNLOAD_PATH}/${currentRelease}/ehld/ maildest=${env.RELEASE_DEVELOPER_EMAIL}"
-							}
+					withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'neo4jPass', usernameVariable: 'neo4jUser')]){
+						withCredentials([usernamePassword(credentialsId: 'solrUsernamePassword', passwordVariable: 'solrPass', usernameVariable: 'solrUser')]){
+							sh "./scripts/run-indexer.sh solrpass=${solrPass} neo4jpass=${neo4jPass} iconsdir=${env.ICONS_ABS_PATH} ehlddir=${env.ABS_DOWNLOAD_PATH}/${currentRelease}/ehld/ maildest=${env.RELEASE_DEVELOPER_EMAIL}"
 						}
 					}
 				}
@@ -53,19 +49,17 @@ pipeline{
 		stage('Post: Move ebeye and Icons txt files to download'){
 		    steps{
 		        script{
-					dir("search-indexer"){
-						def releaseVersion = utils.getReleaseVersion()
-						def iconsFolder = "icons/"
-						// Gzip ebeye.xml and ebeye-covid.xml files before moving them to download/XX.
-						sh "gzip ebeye*"
-						sh "cp ebeye*gz ${env.ABS_DOWNLOAD_PATH}/${releaseVersion}/"
-						sh "gunzip ebeye*gz"
-						// Archives Icons folder before moving to download/XX folder.
-						sh "mkdir -p ${iconsFolder}"
-						sh "mv *txt ${iconsFolder}"
-						sh "tar -zcvf icons-v${releaseVersion}.tar ${iconsFolder}"
-						sh "mv ${iconsFolder} ${env.ABS_DOWNLOAD_PATH}/${releaseVersion}/"
-					}
+					def releaseVersion = utils.getReleaseVersion()
+					def iconsFolder = "icons/"
+					// Gzip ebeye.xml and ebeye-covid.xml files before moving them to download/XX.
+					sh "gzip ebeye*"
+					sh "cp ebeye*gz ${env.ABS_DOWNLOAD_PATH}/${releaseVersion}/"
+					sh "gunzip ebeye*gz"
+					// Archives Icons folder before moving to download/XX folder.
+					sh "mkdir -p ${iconsFolder}"
+					sh "mv *txt ${iconsFolder}"
+					sh "tar -zcvf icons-v${releaseVersion}.tar ${iconsFolder}"
+					sh "mv ${iconsFolder} ${env.ABS_DOWNLOAD_PATH}/${releaseVersion}/"
 		        }
 		    }
 		}
@@ -73,11 +67,9 @@ pipeline{
 		stage('Post: Update sitemap files and restart Solr') {
 		    steps{
 		        script{
-					dir("search-indexer"){
-						sh "sudo bash scripts/changeSiteMapFiles.sh"
-						sh "sudo service solr stop"
-						sh "sudo service solr start"
-					}
+					sh "sudo bash scripts/changeSiteMapFiles.sh"
+					sh "sudo service solr stop"
+					sh "sudo service solr start"
 		        }
 		    }
 		}
@@ -85,13 +77,11 @@ pipeline{
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
-					dir("search-indexer"){
-						def releaseVersion = utils.getReleaseVersion()
-						def dataFiles = ["ebeye.xml", "ebeyecovid.xml", "icons-v${releaseVersion}.tar"]
-						def logFiles = []
-						def foldersToDelete = []
-						utils.cleanUpAndArchiveBuildFiles("search_indexer", dataFiles, logFiles, foldersToDelete)
-					}
+					def releaseVersion = utils.getReleaseVersion()
+					def dataFiles = ["ebeye.xml", "ebeyecovid.xml", "icons-v${releaseVersion}.tar"]
+					def logFiles = []
+					def foldersToDelete = []
+					utils.cleanUpAndArchiveBuildFiles("search_indexer", dataFiles, logFiles, foldersToDelete)
 				}
 			}
 		}
