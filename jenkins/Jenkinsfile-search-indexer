@@ -28,7 +28,9 @@ pipeline{
 		stage('Setup: Build jar file'){
 			steps{
 				script{
-					sh "mvn clean package"
+					dir("search-indexer"){
+						sh "mvn clean package"
+					}
 				}
 			}
 		}
