@@ -8,7 +8,7 @@ import java.nio.file.Paths
 
 /**
  * @author: jcook
- * This library is used by the Reactome Jenkins process. It contains commonly used  
+ * This library is used by the Reactome Jenkins process. It contains commonly used
  * functionality that are used by the Jenkinsfiles while running the Reactome Release.
  */
 
@@ -202,7 +202,11 @@ def moveFilesToFolder(String folder, List files) {
  * @param folder - String, name of folder being recursively gzipped.
  */
 def gzipFolderContents(String folder) {
-    sh "if [ ! -z ${folder} ]; then gzip -rf ${folder}; fi"
+    // sh "if [ ! -z ${folder} ]; then gzip -rf ${folder}; fi"
+    // Only zip things that are not already compressed. Blindly zipping everything will cause problems for
+    // other parts of the Release that want to compare a new file to an old file and are not expecting that
+    // they may need to decompress a file twice.
+    sh "cd ${folder} ; for i in $(ls .); do if ([[ ! $i =~ .zip ]] && [[ ! $i =~ .gz ]] && [[ ! $i =~ .tgz  ]] && [[ ! $i =~ .bz ]] && [[ ! $i =~ .bz2 ]])  ; then gzip $i; fi done ; cd - ;"
 }
 
 /**
