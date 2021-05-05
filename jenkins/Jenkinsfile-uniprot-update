@@ -22,8 +22,8 @@ pipeline {
 		stage('Setup: Download uniprot_sprot.xml.gz and uniprot-reviewed:no.list.gz'){
 			steps{
 				script{
-					sh "wget -q -N ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.xml.gz"
-					sh "wget -q -O uniprot-reviewed:no.list.gz \'https://www.uniprot.org/uniprot/?query=reviewed:no&format=list&force=true&compress=yes\'"
+					sh "wget -N ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.xml.gz"
+					sh "wget -O uniprot-reviewed:no.list.gz \'https://www.uniprot.org/uniprot/?query=reviewed:no&format=list&force=true&compress=yes\'"
 					sh "mv uniprot*gz ${env.ABS_RELEASE_PATH}/uniprot_update/"
 				}
 			}
