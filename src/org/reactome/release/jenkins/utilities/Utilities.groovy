@@ -206,7 +206,7 @@ def gzipFolderContents(String folder) {
     // Only zip things that are not already compressed. Blindly zipping everything will cause problems for
     // other parts of the Release that want to compare a new file to an old file and are not expecting that
     // they may need to decompress a file twice.
-    sh "cd ${folder} ; for i in $(ls .); do if ([[ ! $i =~ .zip ]] && [[ ! $i =~ .gz ]] && [[ ! $i =~ .tgz  ]] && [[ ! $i =~ .bz ]] && [[ ! $i =~ .bz2 ]])  ; then gzip $i; fi done ; cd - ;"
+    sh "cd ${folder} ; for i in \$(ls .); do if ([[ ! \$i =~ .zip ]] && [[ ! \$i =~ .gz ]] && [[ ! \$i =~ .tgz  ]] && [[ ! \$i =~ .bz ]] && [[ ! \$i =~ .bz2 ]])  ; then gzip \$i; fi done ; cd - ;"
 }
 
 /**
