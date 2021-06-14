@@ -4,7 +4,7 @@ import org.reactome.release.jenkins.utilities.Utilities
 // - Rotate "release_current" database into "current"
 // - Archive "release_current"
 // - redirect downloads "current" directory to ${release_number} directory
-// - archive ${release_number} downloads directory 
+// - archive ${release_number} downloads directory
 
 // Shared library maintained at 'release-jenkins-utils' repository.
 def utils = new Utilities()
@@ -96,9 +96,12 @@ pipeline
 			// clean up - this file has already been archived in the "Dump Databses" stage"
 			sh "${release_number}_release_current_final.sql"
 		}
-		stage('Send email notification'){
-			steps{
-				script{
+		stage('Send email notification')
+		{
+			steps
+			{
+				script
+				{
 					// Email attachments need to take place within Jenkins' working directory, so the uniprot.wiki file needs to be moved from uniprot_update (in old Release directory)
 					def emailSubject = "Finalise release for Release ${release_number} has completed"
 					def emailBody = "Hello,\nThis is an automated email letting you know that the \"Finalise Release\" step has completed.\nThis would be a good time to complete any work on outstanding News-page items, stats pages, etc... and the notify the testers that they can start testing."
