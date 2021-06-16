@@ -24,82 +24,27 @@ pipeline {
 			steps{
 				script{
 					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
-						withCredentials([file(credentialsId: 'Config', variable: 'ConfigFile')]){
-							sh "java -Xmx${env.JAVA_MEM_MAX}m -jar release-data-exporter/target/data-exporter*-jar-with-dependencies.jar $ConfigFile"
-							sh "ln -sf output/ archive"
-						}
+						sh "java -Xmx${env.JAVA_MEM_MAX}m -jar release-data-exporter/target/data-exporter*-jar-with-dependencies.jar"
+						sh "ln -sf output/ archive"
 					}
 				}
 			}
 		}
-		/*
-		stage('Main: Upload NCBI data'){
-			steps{
-				script{
-					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
-						sh "perl upload_ncbi.pl -version ${currentRelease}"
-					}
-				}
-			}
-		}
-		stage('Main: Upload EuropePMC data'){
-			steps{
-				script{
-					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
-						sh "perl upload_europepmc.pl -version ${currentRelease}"
-					}
-				}
-			}
-		}
-		*/
-		stage('Main: Run Hapmap script'){
-			steps{
-				script{
-					dir("${env.ABS_RELEASE_PATH}/data-exporter/"){
-						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-							sh "perl 1haprefseq.pl -user $user -pass $pass -db ${env.RELEASE_CURRENT_DB}"
-						}
-					}
-				}
-			}
-		}
-		/*
+
 		stage('Post: Archive Outputs'){
 			steps{
 				script{
-					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${currentRelease}/biomodels"
-					def biomodelsPath = "${env.ABS_RELEASE_PATH}/biomodels"
-					sh "mkdir -p databases/ data/"
-					sh "mv --backup=numbered *_${currentRelease}_*.dump.gz databases/"
-					sh "mv graph-importer/logs/* logs/"
-					sh "mv analysis-core/logs/* logs/"
-					sh "mv ${biomodelsPath}/logs/* logs/"
-					sh "mv ${biomodelsPath}/jsbml.log logs/"
-					sh "mv ${biomodelsPath}/models2pathways.tsv data/"
-					sh "mv analysis-core/analysis-biomodels-v${currentRelease}.bin data/"
-					sh "mv /tmp/intact-micluster.txt data/"
+					def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${currentRelease}/data-exporter"
+					def dataExporterPath = "${env.ABS_RELEASE_PATH}/data-exporter/release-data-exporter"
+					sh "mkdir -p databases/ data/ logs/"
+					sh "mv ${dataExporterPath}/output/* data/"
+					sh "mv ${dataExporterPath}/logs/* logs/"
 					sh "gzip data/* logs/*"
-					sh "mv graph-importer/graphdb_${currentRelease}_biomodels.tgz data/"
-					sh "mv ${biomodelsPath}/BioModels_Database-*sbml_files.tar.bz2 data/"
-					sh "aws s3 --no-progress --recursive cp databases/ $s3Path/databases/"
 					sh "aws s3 --no-progress --recursive cp logs/ $s3Path/logs/"
 					sh "aws s3 --no-progress --recursive cp data/ $s3Path/data/"
-					sh "rm -r databases logs data ${biomodelsPath}/BioModels_Database-*-sbml_files"
-					sh "rm -rf graph-importer*"
-					sh "rm -rf analysis-core*"
-					sh "rm -rf release-jenkins-utils*"
+					sh "rm -r logs data"
 				}
 			}
 		}
-		*/
-	}		
-}
-// Utility function that checks if a git directory exists. If not, it is cloned.
-def cloneOrPullGitRepo(String repoName) {
-	// This method is deceptively named -- it can also check if a directory exists
-	if(!fileExists(repoName)) {
-		sh "git clone ${env.REACTOME_GITHUB_BASE_URL}/${repoName}"
-	} else {
-		sh "cd ${repoName}; git pull"
 	}
 }
