@@ -74,7 +74,14 @@ def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeO
  * @param databaseHost - String, host of MySQL server.
  */
 def takeDatabaseDump(String databaseName, String databaseFilename, String databaseHost) {
-    sh "mysqldump -u${user} -p${pass} -h${databaseHost} ${databaseName} > ${databaseFilename}"
+    def hostname = sh(script: "hostname -f", returnStdout: true)
+    def columnStatisticsParameter = ""
+    if (${databaseHost} != 'curator.reactome.org' && (${databaseHost} != "localhost" && ${databaseHost} != ${hostname})) {
+        // Needed for interacting with a MySQL remote host less than MySQL 8 (curator.reactome.org is on MySQL 5)
+        // https://www.mydatahack.com/mysqldump-error-unknown-table-column_statistics-in-information_schema-1109/
+        columnStatisticsParameter = "--column-statistics=0"
+    }
+    sh "mysqldump -u${user} -p${pass} -h${databaseHost} ${columnStatisticsParameter} ${databaseName} > ${databaseFilename}"
 }
 
 /**
@@ -146,6 +153,16 @@ def cloneOrUpdateLocalRepo(String repoName) {
         sh "git clone ${env.REACTOME_GITHUB_BASE_URL}/${repoName}"
     } else {
         sh "cd ${repoName}; git pull"
+    }
+}
+
+def cloneOrUpdateLocalRepoWithUserToken(String repoName) {
+    withCredentials([usernamePassword(credentialsId: 'githubToken', usernameVariable: 'user', passwordVariable: 'token')]) {
+        if (!fileExists(repoName)) {
+            sh "git clone https://${user}:${token}@${env.REACTOME_GITHUB_BASE_URL_NO_HTTPS}/${repoName}"
+        } else {
+            sh "cd ${repoName}; git pull"
+        }
     }
 }
 
