@@ -74,7 +74,7 @@ def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeO
  * @param databaseHost - String, host of MySQL server.
  */
 def takeDatabaseDump(String databaseName, String databaseFilename, String databaseHost) {
-    def hostname = sh(script: 'hostname -f', returnStdout: true).trim()
+    def hostname = "release.reactome.org"
     def columnStatisticsParameter = ""
     if (${databaseHost} != 'curator.reactome.org' && (${databaseHost} != "localhost" && ${databaseHost} != ${hostname})) {
         // Needed for interacting with a MySQL remote host less than MySQL 8 (curator.reactome.org is on MySQL 5)
