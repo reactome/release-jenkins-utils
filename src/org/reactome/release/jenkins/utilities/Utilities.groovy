@@ -76,7 +76,7 @@ def takeDatabaseDumpAndGzip(String databaseName, String stepName, String beforeO
 def takeDatabaseDump(String databaseName, String databaseFilename, String databaseHost) {
     def hostname = "release.reactome.org"
     def columnStatisticsParameter = ""
-    if (databaseHost != 'curator.reactome.org' && (databaseHost != "localhost" && databaseHost != hostname)) {
+    if (databaseHost == 'curator.reactome.org' && databaseHost != hostname) {
         // Needed for interacting with a MySQL remote host less than MySQL 8 (curator.reactome.org is on MySQL 5)
         // https://www.mydatahack.com/mysqldump-error-unknown-table-column_statistics-in-information_schema-1109/
         columnStatisticsParameter = "--column-statistics=0"
