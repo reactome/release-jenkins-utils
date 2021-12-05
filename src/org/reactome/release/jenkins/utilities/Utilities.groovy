@@ -169,8 +169,16 @@ def cloneOrUpdateLocalRepoWithUserToken(String repoName) {
 /**
  * Builds jar file to be executed by Jenkins.
  */
-def buildJarFile() {
+def buildJarFileWithAssemblySingle() {
     sh "mvn clean compile assembly:single"
+}
+
+def buildJarFileWithPackage() {
+    sh "mvn clean package"
+}
+
+def buildJarFile() {
+    buildJarFileWithAssemblySingle()
 }
 
 /**
