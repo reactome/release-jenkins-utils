@@ -43,11 +43,11 @@ pipeline {
 
 					dir("graph-importer"){
 						// Builds jar file for graph-importer
-						utils.buildJarFile()
+						utils.buildJarFileithPackage()
 
 						// This generates the graph database.
 						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-							sh "java -jar target/GraphImporter-jar-with-dependencies.jar --name ${env.REACTOME_DB} --user $user --password $pass --neo4j /tmp/graph.db --interactions"
+							sh "java -jar target/GraphImporter-exec.jar --name ${env.REACTOME_DB} --user $user --password $pass --neo4j /tmp/graph.db --interactions"
 							sh "cp -r /tmp/graph.db/ ."
 							// tomcat and neo4j services need to be restarted so that Pathway Browser on Release server is updated.
 							sh "sudo service tomcat9 stop"
