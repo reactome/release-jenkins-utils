@@ -89,7 +89,7 @@ pipeline {
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/reference_DNA_sequence_report.txt data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/duplicated_db_id.txt data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/trembl_to_update.acc data/"
-					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot-reviewed:no.list data/"
+					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot-reviewed_no.list data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot_sprot.xml data/"
 					sh "mv uniprot.wiki data/"
 					sh "mv ${env.ABS_RELEASE_PATH}/uniprot_update/uniprot.* logs/"
