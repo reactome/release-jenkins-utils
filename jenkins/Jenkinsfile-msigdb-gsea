@@ -1,0 +1,39 @@
+// This Jenkinsfile is used by Jenkins to run the MSigDB-GSEA step of Reactome's release.
+
+import org.reactome.release.jenkins.utilities.Utilities
+
+// Shared library maintained at 'release-jenkins-utils' repository.
+def utils = new Utilities()
+
+pipeline {
+	agent any
+
+	stages {
+		stage('Main: Run MSigDB-GSEA'){
+			steps{
+				script{
+					def releaseVersion = utils.getReleaseVersion()
+					dir("${env.ABS_RELEASE_PATH}/msigdb-gsea/"){
+						sh "perl build_gsea.pl"
+						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "./runGSEAOutput.sh localhost ${env.RELEASE_CURRENT_DB} $user $pass 3306  Reactome_GeneSet_${releaseVersion}.txt 48887 true"
+						}
+					}
+				}
+			}
+		}
+		//TODO: Email file
+		stage('Post: Archive Outputs'){
+			steps{
+				script{
+				    def releaseVersion = utils.getReleaseVersion()
+					def dataFiles = ["${env.ABS_RELEASE_PATH}/msigdb-gsea/Reactome_GeneSet_${releaseVersion}.txt"]
+					def logFiles = []
+					def foldersToDelete = []
+					utils.cleanUpAndArchiveBuildFiles("msigdb_gsea", dataFiles, logFiles, foldersToDelete)
+					
+				}
+			}
+		}
+	}		
+}
