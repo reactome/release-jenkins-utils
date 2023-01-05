@@ -10,12 +10,16 @@ pipeline {
 	agent any
 
 	stages {
-		stage('load slice-qa mysql database'){
+		stage('Install test slice on release'){
 			steps{
 				script{
 					sh "echo load-database"
-					def releaseVersion = utils.getReleaseVersion()
-					sh "echo $releaseVersion"
+					def releaseVersion =  timeout(time:60, unit:'SECONDS') {input(
+                                            id: 'releaseVersion', message: 'Version Required', parameters: [
+                                                  [$class: 'NumberParameterDefinition', defaultValue: '', description: 'ReleaseVersion', name: 'version'],
+                                                ])
+                                        }
+					sh "echo ${releaseVersion}"
 				}
 			}
 		}
