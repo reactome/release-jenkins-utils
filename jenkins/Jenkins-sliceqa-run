@@ -1,0 +1,22 @@
+// This Jenkinsfile is used by Jenkins to run the Commit Stats Files step of Reactome's release.
+// It commits a few files produced during Release to GitHub for posterity.
+
+import org.reactome.release.jenkins.utilities.Utilities
+
+// Shared library maintained at 'release-jenkins-utils' repository.
+def utils = new Utilities()
+
+pipeline {
+	agent any
+
+	stages {
+		stage('load slice-qa mysql database'){
+			steps{
+				script{
+					sh "echo load-database"
+					
+				}
+			}
+		}
+	}		
+}
