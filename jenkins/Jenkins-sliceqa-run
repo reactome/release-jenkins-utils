@@ -14,6 +14,7 @@ pipeline {
     }
     
 	stages {
+	        /*
 		stage('Replace slice_test Database') {
 		    steps{
 				script{
@@ -29,7 +30,7 @@ pipeline {
                     }
 				}
 			}
-		}
+		}*/
 		stage('Generate Fireworks') {
 		    steps{
 		        script{
