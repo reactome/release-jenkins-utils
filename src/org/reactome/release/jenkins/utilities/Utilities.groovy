@@ -155,6 +155,7 @@ def cloneOrUpdateLocalRepo(String repoName) {
         sh "cd ${repoName}; git pull"
     }
 }
+
 def cloneOrUpdateLocalPwpRepo(String repoName) {
     if(!fileExists(repoName)) {
         sh "git clone ${env.REACTOME_GITHUB_BASE_URL}-pwp/${repoName}"
