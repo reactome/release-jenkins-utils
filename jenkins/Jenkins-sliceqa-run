@@ -14,7 +14,8 @@ pipeline {
 			steps{
 				script{
 					sh "echo load-database"
-					
+					def releaseVersion = utils.getReleaseVersion()
+					sh "echo $releaseVersion"
 				}
 			}
 		}
