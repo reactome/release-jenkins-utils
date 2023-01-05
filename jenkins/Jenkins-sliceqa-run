@@ -34,7 +34,7 @@ pipeline {
 		stage('Generate Fireworks') {
 		    steps{
 		        script{
-		            utils.cloneOrUpdateLocalPWPRepo("fireworks-layout")
+		            utils.cloneOrUpdateLocalPwpRepo("fireworks-layout")
 		            dir("fireworks-layout") {
 		                sh "ls -lhtr"
 		            }
