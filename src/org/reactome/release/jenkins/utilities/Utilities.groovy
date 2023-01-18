@@ -156,14 +156,6 @@ def cloneOrUpdateLocalRepo(String repoName) {
     }
 }
 
-def cloneOrUpdateLocalPwpRepo(String repoName) {
-    if(!fileExists(repoName)) {
-        sh "git clone ${env.REACTOME_GITHUB_BASE_URL}-pwp/${repoName}"
-    } else {
-        sh "cd ${repoName}; git pull"
-    }
-}
-
 def cloneOrUpdateLocalRepoWithUserToken(String repoName) {
     withCredentials([usernamePassword(credentialsId: 'githubToken', usernameVariable: 'user', passwordVariable: 'token')]) {
         if (!fileExists(repoName)) {
