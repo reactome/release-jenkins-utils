@@ -1,0 +1,33 @@
+// This Jenkinsfile is used by Jenkins to run the DataExporter step of Reactome's release.
+
+import org.reactome.release.jenkins.utilities.Utilities
+
+// Shared library maintained at 'release-jenkins-utils' repository.
+def utils = new Utilities()
+
+pipeline {
+	agent any
+
+	stages {
+		stage('Main: Run Uncurated Proteins'){
+			steps{
+				script{
+					dir("${env.ABS_RELEASE_PATH}/website_files_update/"){
+						sh "perl uncurated_proteins.pl"
+					}
+				}
+			}
+		}
+		// TODO: email file
+		stage('Post: Archive Outputs'){
+			steps{
+				script{
+					def dataFiles = ["${env.ABS_RELEASE_PATH}/website_files_update/UnUsedUniProts*.txt"]
+					def logFiles = []
+					def foldersToDelete = []
+					utils.cleanUpAndArchiveBuildFiles("uncurated_proteins", dataFiles, logFiles, foldersToDelete)
+				}
+			}
+		}
+	}		
+}

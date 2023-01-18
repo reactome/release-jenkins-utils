@@ -1,0 +1,179 @@
+// This Jenkinsfile is used by Jenkins to run the Commit Stats Files step of Reactome's release.
+// It commits a few files produced during Release to GitHub for posterity.
+
+import org.reactome.release.jenkins.utilities.Utilities
+
+// Shared library maintained at 'release-jenkins-utils' repository.
+def utils = new Utilities()
+
+pipeline {
+	agent any
+
+    parameters {
+        string(defaultValue: "", description: '', name: 'RELEASE_VERSION')
+    }
+    
+	stages {
+	        
+		stage('Replace slice_test Database') {
+		    steps{
+				script{
+					def slice_dump_filepath = "/tmp/test_slice_${params.RELEASE_VERSION}.sql.gz"
+					
+					if (!fileExists(slice_dump_filepath) ) {
+					    currentBuild.result = "FAILURE"
+                        throw new Exception("file: " + $slice_dump_filepath + " Does Not Exist")
+                    }
+                    echo 'dump file exists here: ${slice_dump_filepath}'
+                    withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+                        utils.replaceDatabase("slice_test", slice_dump_filepath)
+                    }
+				}
+			}
+		}
+
+		stage("Run Release QA"){
+		    steps{
+		        script{   
+		            utils.cloneOrUpdateLocalRepo("release-qa")
+		            dir("release-qa"){
+		                sh "git checkout main-release"
+		                sh "git pull"
+		                sh "mvn clean package"
+		                sh "rm target/output/* -f"
+		                sh "rm target/resources/auth.properties -f"
+		                sh "cp /home/awright/gitroot/release-qa/auth.properties target/resources/auth.properties"
+		                dir("target"){
+		                   sh "java -Xmx8G -jar release-qa-0.1.0-exec.jar"
+		                   dir("output") {
+		                       sh "cat Attribute_Has_Only_One_Value.tsv"
+		                       sh "cat Attribute_Value_Missing.tsv"
+		                       sh "cat CoV-2_Entities_With_CoV-1_Species_Or_DisplayName.tsv"
+   		                       sh "cat CoV-2_Infection_Pathway_Events_With_Summation_And_Literature_Reference_Issues.tsv"
+		                       sh "cat Diagram_Disease_Color.tsv"
+		                       sh "cat Diagram_Overlapping_Entities.tsv"
+		                       sh "cat Entities_With_CoV_Species_Without_Corresponding_Disease.tsv"
+		                       sh "cat Human_Reactions_Without_Disease_And_Have_NonHuman_PhysicalEntities.tsv"
+		                       sh "cat Instance_Duplication.tsv"
+		                       sh "cat One_Hop_Circular_Reference.tsv"
+		                       sh "cat summary.tsv"
+		                   }
+		                }
+		                
+		            }
+		        }
+		    }
+		}
+
+		stage('Get suggested DOIs'){
+			steps{
+				script{
+				    utils.cloneOrUpdateLocalRepo("doi-suggester")
+		            dir("doi-suggester") {
+		                sh "mvn clean package"
+		                sh "mkdir -p src/main/resources/"
+					    sh "cp /home/awright/gitroot/doi-suggester/src/main/resources/config.properties src/main/resources/config.properties"
+					    sh "java -jar target/doi-suggester-*-jar-with-dependencies.jar"
+					}
+				}
+			}
+		}
+
+		stage('Generate Graph Database'){
+			steps{
+				script{
+					// Gets a copy of 'changeGraphDatabase', which Jenkins can execute as sudo. Changes permissions of file to user read/write only.
+					utils.cloneOrUpdateLocalRepo("release-jenkins-utils")
+					sh "cp -f release-jenkins-utils/scripts/changeGraphDatabase.sh ${env.JENKINS_HOME_PATH}"
+					sh "chmod 700 ${env.JENKINS_HOME_PATH}/changeGraphDatabase.sh"
+					utils.cloneOrUpdateLocalRepo("graph-importer")
+
+					dir("graph-importer"){
+						// Builds jar file for graph-importer
+						utils.buildJarFileWithPackage()
+
+						// This generates the graph database.
+						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "java -jar target/GraphImporter-exec.jar --name slice_test --user $user --password $pass --neo4j /tmp/graph.db --interactions"
+							sh "cp -r /tmp/graph.db/ ."
+							// tomcat and neo4j services need to be restarted so that Pathway Browser on Release server is updated.
+							sh "sudo service tomcat9 stop"
+							sh "sudo service neo4j stop"
+
+							// This static script adjusts permissions of the graph.db folder and moves it to /var/lib/neo4j/data/databases/.
+							sh "sudo bash ${env.JENKINS_HOME_PATH}/changeGraphDatabase.sh"
+							sh "sudo service neo4j start"
+							sh "sudo service tomcat9 start"
+							sh "rm ${env.JENKINS_HOME_PATH}/changeGraphDatabase.sh"
+						}
+					}
+				}
+			}
+		}
+
+		stage("Graph QA") {
+		    steps{
+		        script{
+		          utils.cloneOrUpdateLocalRepo("graph-qa")
+		            dir("graph-qa"){
+		                sh "mvn clean package"
+		                withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+		                    sh "java -jar target/graph-qa-exec.jar -u $user -p $pass --verbose"
+		                }
+		                
+		            }
+		        }
+		    }
+		}
+
+		stage('Generate Fireworks') {
+		    steps{
+		        script{
+		            utils.cloneOrUpdateLocalPwpRepo("fireworks-layout")
+		            dir("fireworks-layout") {
+		                utils.buildJarFileWithPackage()
+		                
+		                sh "mkdir -p fireworks"
+		                sh "rm -f fireworks/*"
+
+				  	    withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+	                        sh "java -Dlogback.configurationFile=src/main/resources/logback.xml -jar target/fireworks-exec.jar --user $user --password $pass --folder ./config --output ./fireworks"
+						    sh "tree fireworks"
+					    }
+					    
+					    def downloadPath = "${env.ABS_DOWNLOAD_PATH}/${params.RELEASE_VERSION}"
+			            sh "rm -rf ${downloadPath}/fireworks"
+		                sh "mv fireworks ${downloadPath}/"
+		            }
+		        }
+		    }
+		}
+
+		stage("Diagram Converter"){
+		    steps{
+		        script{
+		            utils.cloneOrUpdateLocalPwpRepo("diagram-converter")
+		            dir("diagram-converter"){
+		                sh "mvn clean package"
+		                sh "rm reports/* -f"
+	   	                sh "mkdir -p output/"
+		                sh "rm output/* -f"
+		                withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'mysqlPass', usernameVariable: 'mysqlUser')]){
+                            withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'neo4jPass', usernameVariable: 'neo4jUser')]){
+                                def diagramPath = "/usr/local/reactomes/Reactome/production/Website/static/download/${params.RELEASE_VERSION}/diagram/"
+                                sh "rm -rf $diagramPath"
+                                sh "mkdir -p $diagramPath"
+                                sh "java -Dlogback.configurationFile=src/main/resources/logback.xml -jar target/diagram-converter-exec.jar --graph_user $neo4jUser --graph_password $neo4jPass --rel_user $mysqlUser --rel_password $mysqlPass --rel_database slice_test --output $diagramPath"
+                                // Restart tomcat9 and neo4j services after updates were made to graph db.
+                                sh "sudo service tomcat9 stop"
+                                sh "sudo service neo4j stop"
+                                sh "sudo service neo4j start"
+                                sh "sudo service tomcat9 start"
+                            }
+                        }
+	   	            }
+		        }
+		    }
+		}
+	}		
+}

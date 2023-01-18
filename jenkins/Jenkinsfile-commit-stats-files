@@ -1,0 +1,26 @@
+// This Jenkinsfile is used by Jenkins to run the Commit Stats Files step of Reactome's release.
+// It commits a few files produced during Release to GitHub for posterity.
+
+import org.reactome.release.jenkins.utilities.Utilities
+
+// Shared library maintained at 'release-jenkins-utils' repository.
+def utils = new Utilities()
+
+pipeline {
+	agent any
+
+	stages {
+		stage('Main: Run CommitStatsFile'){
+			steps{
+				script{
+					def releaseVersion = utils.getReleaseVersion()
+					dir("${env.ABS_RELEASE_PATH}/commit_stats_files/"){
+						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+							sh "perl commit_stats_files.pl -version ${releaseVersion} -stats_file_dir ${env.WEBSITE_FILES_UPDATE_ABS_PATH}"
+						}
+					}
+				}
+			}
+		}
+	}		
+}
