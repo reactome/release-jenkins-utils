@@ -38,7 +38,7 @@ pipeline
 				}
 			}
 		}
-		stage('Dump databases')
+		stage('Dump MySQL databases')
 		{
 			steps
 			{
@@ -60,6 +60,22 @@ pipeline
 					// some cleanup
 					sh rm "test_reactome_${release_number}* ${release_number}_release_current_final.sql.gz"
 				}
+			}
+		}
+		stage('Create Neo4J database dump')
+		{
+			steps
+			{
+			    sh "sudo service neo4j stop"
+			    sh "sudo neo4j-admin dump --database=graph.db --to=${env.ABS_DOWNLOAD_PATH}/${release_number}/reactome.graphdb.dump"
+			    sh "sudo service neo4j start"
+			}
+		}
+		stage('Sync download directory to S3')
+		{
+			steps
+			{
+				sh "aws s3 sync ${env.ABS_DOWNLOAD_PATH}/${release_number}/ s3://download.reactome.org/${release_number}/"
 			}
 		}
 		stage('Archive download directory')
