@@ -1,0 +1,113 @@
+import org.reactome.release.jenkins.utilities.Utilities
+
+// Ths Jenkinsfile will perform the last few steps to "finalise" the Release:
+// - Rotate "release_current" database into "current"
+// - Archive "release_current"
+// - redirect downloads "current" directory to ${release_number} directory
+// - archive ${release_number} downloads directory
+
+// Shared library maintained at 'release-jenkins-utils' repository.
+def utils = new Utilities()
+def release_number = utils.getReleaseVersion();
+def prev_release_number = utils.getPreviousReleaseVersion();
+def s3Path = "${env.S3_RELEASE_DIRECTORY_URL}/${release_number}/"
+pipeline
+{
+	agent any
+
+	stages
+	{
+		// This stage checks that an upstream step, ConfirmReleaseConfigs, was run successfully.
+		stage('Check prior steps build succeeded')
+		{
+			steps
+			{
+				script
+				{
+					// Check that search indexer completed
+					utils.checkUpstreamBuildsSucceeded("SearchIndexer")
+					// also need to check the steps in File-Generation
+					utils.checkUpstreamBuildsSucceeded("File-Generation/job/DownloadDirectory/")
+					utils.checkUpstreamBuildsSucceeded("File-Generation/job/DataExport/")
+					utils.checkUpstreamBuildsSucceeded("File-Generation/job/DiagramConverter/")
+					utils.checkUpstreamBuildsSucceeded("File-Generation/job/DiagramExporter/")
+					utils.checkUpstreamBuildsSucceeded("File-Generation/job/EventPDF/")
+					utils.checkUpstreamBuildsSucceeded("File-Generation/job/FireworksLayout/")
+					utils.checkUpstreamBuildsSucceeded("File-Generation/job/InteractionExporter/")
+					utils.checkUpstreamBuildsSucceeded("File-Generation/job/SBMLExporter/")
+				}
+			}
+		}
+		stage('Dump databases')
+		{
+			steps
+			{
+				// According to Justin's notes, the MySQL database "release_current" gets dumped twice
+				// to two files with different names, and then each file gets uploaded to S3.
+				script
+				{
+					withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')])
+					{
+						utils.takeDatabaseDump('release_current', "${env.RELEASE_CURRENT_DB}_release_current_final.sql", 'localhost')
+					}
+					sh "cp ${release_number}_release_current_final.sql test_reactome_${release_number}.sql"
+					sh "gzip ${release_number}_release_current_final.sql"
+					sh "gzip test_reactome_${release_number}.sql"
+					// Not sure why the same database gets archived in two different places in S3, with two different filenames,
+					// but this is how Justin said it should be done in his final notes.
+					sh "aws s3 --no-progress cp ${release_number}_release_current_final.sql.gz ${s3Path}/${release_number}/${release_number}_release_current_final.sql.gz"
+					sh "aws s3 --no-progress cp test_reactome_${release_number}.gz s3://reactome/private/databases/release/final/test_reactome_${release_number}.sql.gz"
+					// some cleanup
+					sh rm "test_reactome_${release_number}* ${release_number}_release_current_final.sql.gz"
+				}
+			}
+		}
+		stage('Archive download directory')
+		{
+			steps
+			{
+				// first, we set all permissions in this directory to www-data:reactome
+				sh "chown -R www-data:reactome ${env.ABS_DOWNLOAD_PATH}/${releaseVersion}/"
+				// create archive
+				sh "tar -czf ${release_number}-download.tgz ${env.ABS_DOWNLOAD_PATH}/${release_number}/"
+				// copy to s3
+				sh "aws s3 --no-progress cp ${release_number}-download.tgz ${s3Path}/${release_number}-download.tgz"
+				// cleanup
+				sh "rm ${release_number}-download.tgz"
+			}
+		}
+		stage('Update \'current\' symlink')
+		{
+			steps
+			{
+				// remove "current" symlink
+				sh "rm  ${env.ABS_DOWNLOAD_PATH}/current"
+				sh "ln -s ${release_number} ${env.ABS_DOWNLOAD_PATH}/current"
+				// Now that "current" points to the correct directory, delete the old download directory
+				sh "rm ${env.ABS_DOWNLOAD_PATH}/${prev_release_number}"
+			}
+		}
+		stage('Update \'current\' database')
+		{
+			withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')])
+			{
+				sh "mysql -u${user} -p${pass} current < ${release_number}_release_current_final.sql"
+			}
+			// clean up - this file has already been archived in the "Dump Databses" stage"
+			sh "${release_number}_release_current_final.sql"
+		}
+		stage('Send email notification')
+		{
+			steps
+			{
+				script
+				{
+					// Email attachments need to take place within Jenkins' working directory, so the uniprot.wiki file needs to be moved from uniprot_update (in old Release directory)
+					def emailSubject = "Finalise release for Release ${release_number} has completed"
+					def emailBody = "Hello,\nThis is an automated email letting you know that the \"Finalise Release\" step has completed.\nThis would be a good time to complete any work on outstanding News-page items, stats pages, etc... and the notify the testers that they can start testing."
+					utils.sendEmail("$emailSubject", "$emailBody")
+				}
+			}
+		}
+	}
+}
