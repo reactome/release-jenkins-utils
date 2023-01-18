@@ -238,6 +238,8 @@ def gzipFolderContents(String folder) {
     // sh "if [ ! -z ${folder} ]; then gzip -rf ${folder}; fi"
     // Only zip things that are not already compressed. Blindly zipping everything will cause problems for
     // other parts of the Release that want to compare a new file to an old file and are not expecting that
+    // they may need to decompress a file twice.
+
     sh "for f in \$(find ./${folder}/ -not -iregex \".*\\.gz\" -not -iregex \".*\\.tgz\" -not -iregex \".*\\.zip\" -not -iregex \".*\\.bz\" -not -iregex \".*\\.bz2\") ; do if [ -f \"\$f\" ] ; then gzip \$f ; fi ; done"
 }
 
