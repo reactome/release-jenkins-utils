@@ -28,7 +28,7 @@ pipeline{
 		stage('Setup: Build jar file'){
 			steps{
 				script{
-					sh "mvn clean package -PReactome-Server -DskipTests"
+					sh "mvn clean package -PReactome-Server"
 				}
 			}
 		}
