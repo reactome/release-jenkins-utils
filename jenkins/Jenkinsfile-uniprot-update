@@ -23,7 +23,6 @@ pipeline {
 			steps{
 				script{
 					sh "wget -N ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.xml.gz"
-					sh "wget -O uniprot-reviewed:no.list.gz \'https://legacy.uniprot.org/uniprot/?query=reviewed:no&format=list&force=true&compress=yes\'"
 					sh "mv uniprot*gz ${env.ABS_RELEASE_PATH}/uniprot_update/"
 				}
 			}
