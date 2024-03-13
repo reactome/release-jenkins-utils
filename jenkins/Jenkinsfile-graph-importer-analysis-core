@@ -14,7 +14,7 @@ pipeline {
 		stage('Check BioModels build succeeded'){
 			steps{
 				script{
-					utils.checkUpstreamBuildsSucceeded("Relational-Database-Updates/job/BioModels")
+					utils.checkUpstreamBuildsSucceeded("Relational-Database-Updates/job/OrthoinferenceStableIdentifierHistory")
 				}
 			}
 		}
