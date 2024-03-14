@@ -132,9 +132,9 @@ pipeline {
 
 					sh "mv graph-importer/graph_db_analysis_core_graph_database.dump* ."
 
-					def dataFiles = ["analysis-core/analysis*bin","/var/lib/jenkins/workspace/SliceQA/Run_Slice_QA/graph-importer/intact-micluster.txt"]
+					def dataFiles = ["analysis-core/analysis*bin","/home/awright/intact/intact-micluster.txt"]
 					def logFiles = ["graph-importer/parser-messages.txt", "graph-importer/logs/*", "graph-qa/logs/*", "graph-qa/reports/*", "analysis-core/logs/*"]
-					def foldersToDelete = ["graph-importer*", "analysis-core*", "graph-qa*","release-jenkins-utils*"]
+					def foldersToDelete = ["graph-importer*", "analysis-core*", "graph-/home/awright/intact/intact-micluster.txtqa*","release-jenkins-utils*"]
 
 					utils.cleanUpAndArchiveBuildFiles("graph_db_analysis_core", dataFiles, logFiles, foldersToDelete)
 				}
