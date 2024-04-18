@@ -46,6 +46,19 @@ pipeline{
 				}
 			}
 		}
+
+		// Optimise indexes to reduce memory usage and boost performances
+        stage('Main: Optimize SOLR cores'){
+            steps{
+                script{
+                    withCredentials([usernamePassword(credentialsId: 'solrUsernamePassword', passwordVariable: 'solrPass', usernameVariable: 'solrUser')]){
+                        sh "curl --user ${solrUser}:${solrPass} 'http://localhost:8983/solr/reactome/update?optimize=true&maxSegments=1'"
+                        sh "curl --user ${solrUser}:${solrPass} 'http://localhost:8983/solr/target/update?optimize=true&maxSegments=1'"
+                    }""
+                }
+            }
+        }
+
 		// Gzips both ebeye.xml and ebeye-covid.xml files, and then moves them, along with Icons folder, to the downloads folder.
 		stage('Post: Move ebeye and Icons txt files to download'){
 		    steps{
