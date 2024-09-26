@@ -47,6 +47,7 @@ pipeline {
 
 						// This generates the graph database.
 						withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
+                                                        sh "[ ! -f /home/awright/intact/intact-micluster.txt ] && bash /home/awright/intact/get-the-latest-file.sh"
                                                         sh "java -jar target/GraphImporter-exec.jar --intactFile /home/awright/intact/intact-micluster.txt --name ${env.REACTOME_DB} --user $user --password $pass --neo4j /tmp/graph.db --interactions"
 							sh "cp -r /tmp/graph.db/ ."
 							// tomcat and neo4j services need to be restarted so that Pathway Browser on Release server is updated.
