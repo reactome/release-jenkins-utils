@@ -129,7 +129,7 @@ pipeline {
 		stage('Generate Fireworks') {
 		    steps{
 		        script{
-		            utils.cloneOrUpdateLocalPwpRepo("fireworks-layout")
+		            utils.cloneOrUpdateLocalRepo("fireworks-layout")
 		            dir("fireworks-layout") {
 		                utils.buildJarFileWithPackage()
 		                
@@ -152,7 +152,7 @@ pipeline {
 		stage("Diagram Converter"){
 		    steps{
 		        script{
-		            utils.cloneOrUpdateLocalPwpRepo("diagram-converter")
+		            utils.cloneOrUpdateLocalRepo("diagram-converter")
 		            dir("diagram-converter"){
 		                sh "mvn clean package"
 		                sh "rm reports/* -f"
