@@ -67,7 +67,7 @@ pipeline {
                     def release_number = utils.getReleaseVersion()
                     dir("/home/awright/gitroot/reactome_neo4j_env") {
                         sh "sed -i \"s/ReleaseXX/Release${release_number}/g\" Makefile"
-                        sh "mv ${env.ABS_DOWNLOAD_PATH}/${release_number}/reactome.graphdb.dump ."
+                        sh "cp ${env.ABS_DOWNLOAD_PATH}/${release_number}/reactome.graphdb.dump ."
                         sh "make create-data-image"
                         sh "make push-to-dockerhub"
                         sh "sed -i \"s/Release${release_number}/ReleaseXX/g\" Makefile"
