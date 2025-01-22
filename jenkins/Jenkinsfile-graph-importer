@@ -24,7 +24,7 @@ pipeline {
 			steps{
 				script{
 					withCredentials([usernamePassword(credentialsId: 'mySQLUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]) {
-						def releaseCurrentDumpName = utils.takeDatabaseDumpAndGzip("${env.RELEASE_CURRENT_DB}", "generate_graph_db_and_analysis_core", "before", "${env.RELEASE_SERVER}")
+						def releaseCurrentDumpName = utils.takeDatabaseDumpAndGzip("${env.RELEASE_CURRENT_DB}", "generate_graph_db", "before", "${env.RELEASE_SERVER}")
 						utils.replaceDatabase("${env.REACTOME_DB}", "${releaseCurrentDumpName}")
 					}
 				}
@@ -82,29 +82,6 @@ pipeline {
 			}
 		}
 
-		// Creates final analysis core file that will be used by the analysis service on production.
-		stage('Main: Generate Analysis.bin file'){
-			steps{
-				script{
-					def releaseVersion = utils.getReleaseVersion()
-					utils.cloneOrUpdateLocalRepo("analysis-core")
-
-					dir("analysis-core"){
-						def analysisBinName = "analysis_v${releaseVersion}.bin"
-						// Builds jar file for analysis-core repository.
-						utils.buildJarFileWithPackage()
-						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
-							sh "java -jar target/analysis-core-exec.jar --user $user --password $pass --output ./${analysisBinName} --verbose"
-						}
-						sh "cp ${analysisBinName} ${env.ANALYSIS_SERVICE_INPUT_ABS_PATH}/"
-						sh "ln -sf ${env.ANALYSIS_SERVICE_INPUT_ABS_PATH}/${analysisBinName} ${env.ANALYSIS_SERVICE_INPUT_ABS_PATH}/analysis.bin"
-						sh "sudo service tomcat9 stop"
-						sh "sudo service tomcat9 start"
-					}
-				}
-			}
-		}
-
 		// This stage emails the contents of the GraphQA_Summary_vXX.csv, and informs that the graph database is now on release. 
 		stage('Post: Email graph-qa output'){
 			steps{
@@ -128,14 +105,14 @@ pipeline {
 
 					// Creates tar archive out of 'graph.db/' folder that exists in graph-importer folder.
 					dir("graph-importer"){
-						utils.createGraphDatabaseTarFile("graph.db/", "graph_db_analysis_core")
+						utils.createGraphDatabaseTarFile("graph.db/", "graph_db")
 					}
 
-					sh "mv graph-importer/graph_db_analysis_core_graph_database.dump* ."
+					sh "mv graph-importer/graph_db_graph_database.dump* ."
 
-					def dataFiles = ["analysis-core/analysis*bin","/home/awright/intact/intact-micluster.txt"]
-					def logFiles = ["graph-importer/parser-messages.txt", "graph-importer/logs/*", "graph-qa/logs/*", "graph-qa/reports/*", "analysis-core/logs/*"]
-					def foldersToDelete = ["graph-importer*", "analysis-core*", "graph-/home/awright/intact/intact-micluster.txtqa*","release-jenkins-utils*"]
+					def dataFiles = ["/home/awright/intact/intact-micluster.txt"]
+					def logFiles = ["graph-importer/parser-messages.txt", "graph-importer/logs/*", "graph-qa/logs/*", "graph-qa/reports/*"]
+					def foldersToDelete = ["graph-importer*", "graph-/home/awright/intact/intact-micluster.txtqa*","release-jenkins-utils*"]
 
 					utils.cleanUpAndArchiveBuildFiles("graph_db_analysis_core", dataFiles, logFiles, foldersToDelete)
 				}
