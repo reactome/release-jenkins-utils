@@ -21,7 +21,7 @@ pipeline{
 		stage('Checkout'){
             		steps{
                 		// Get some code from a GitHub repository
-                		git branch: 'master', url: 'https://github.com/reactome/search-indexer.git'
+                		git branch: 'feature/reactome-parent-1.0.5', url: 'https://github.com/reactome/search-indexer.git'
             		}
         	}
 		// This stage builds the jar file using maven.
