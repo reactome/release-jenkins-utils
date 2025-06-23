@@ -76,6 +76,19 @@ pipeline {
             }
         }
 
+        stage("Upload docker image to Amazon ECR") {
+            steps {
+                script {
+                    def release_number = utils.getReleaseVersion()
+                    sh """
+                        aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+                        docker push public.ecr.aws/reactome/graphdb:Release${release_number}
+                        docker push public.ecr.aws/reactome/graphdb:latest
+                    """
+                }
+            }
+        }
+
         stage("Create disease to variant file") {
             steps {
                 script {
