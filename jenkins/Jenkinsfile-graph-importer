@@ -42,7 +42,7 @@ pipeline {
 					utils.cloneOrUpdateLocalRepo("graph-importer")
 
 					dir("graph-importer"){
-						sh "git checkout feature/reactome-parent-1.0.5"
+						sh "git checkout feature/new-pwb"
 						// Builds jar file for graph-importer
 						utils.buildJarFileWithPackage()
 
@@ -76,6 +76,8 @@ pipeline {
 						// Build jar file for graph-qa repository.
 						utils.buildJarFileWithPackage()
 
+						// Sleep to ensure neo4j has time to restart
+						sh "sleep 30"
 						withCredentials([usernamePassword(credentialsId: 'neo4jUsernamePassword', passwordVariable: 'pass', usernameVariable: 'user')]){
 							sh "java -jar target/graph-qa-exec.jar -u $user -p $pass --verbose"
 						}
