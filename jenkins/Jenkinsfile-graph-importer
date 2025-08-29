@@ -11,7 +11,7 @@ pipeline {
 
 	stages {
 		// This stage checks that an upstream project, BioModels, was run successfully for its last build.
-		stage('Check BioModels build succeeded'){
+		stage('Check OrthoinferenceStableIdentifierHistory build succeeded'){
 			steps{
 				script{
 					utils.checkUpstreamBuildsSucceeded("Relational-Database-Updates/job/OrthoinferenceStableIdentifierHistory")
