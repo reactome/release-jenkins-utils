@@ -42,7 +42,8 @@ pipeline {
 					utils.cloneOrUpdateLocalRepo("graph-importer")
 
 					dir("graph-importer"){
-						sh "git checkout feature/reactome-parent-1.0.5"
+						sh "git checkout feature/new-pwb"
+						sh "git pull"
 						// Builds jar file for graph-importer
 						utils.buildJarFileWithPackage()
 
