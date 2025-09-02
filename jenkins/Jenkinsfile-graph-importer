@@ -42,7 +42,6 @@ pipeline {
 					utils.cloneOrUpdateLocalRepo("graph-importer")
 
 					dir("graph-importer"){
-						sh "git checkout feature/new-pwb"
 						// Builds jar file for graph-importer
 						utils.buildJarFileWithPackage()
 
