@@ -69,7 +69,6 @@ pipeline {
                         sh "sed -i \"s/ReleaseXX/Release${release_number}/g\" Makefile"
                         sh "cp ${env.ABS_DOWNLOAD_PATH}/${release_number}/reactome.graphdb.dump ."
                         sh "make create-data-image"
-                        sh "make push-to-dockerhub"
                         sh "sed -i \"s/Release${release_number}/ReleaseXX/g\" Makefile"
                     }
                 }
@@ -81,8 +80,11 @@ pipeline {
                 script {
                     def release_number = utils.getReleaseVersion()
                     sh """
+                        docker tag reactome/graphdb:Release$release_number public.ecr.aws/reactome/graphdb:Release$release_number
+                        docker tag public.ecr.aws/reactome/graphdb:Release$release_number public.ecr.aws/reactome/graphdb:latest
+
                         aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-                        docker push public.ecr.aws/reactome/graphdb:Release${release_number}
+                        docker push public.ecr.aws/reactome/graphdb:Release$release_number
                         docker push public.ecr.aws/reactome/graphdb:latest
                         docker logout public.ecr.aws
                     """
