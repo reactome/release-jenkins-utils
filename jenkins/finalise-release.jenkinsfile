@@ -98,7 +98,7 @@ pipeline {
                     def release_number = utils.getReleaseVersion()
                     dir("/home/awright/sandbox/disease-variant-ewas-mapping") {
                         sh "docker run --name reactome-neo4j-v${release_number} -p 7475:7474 -p 7688:7687 -e NEO4J_dbms_memory_heap_maxSize=8g -d reactome/graphdb:Release${release_number}"
-                        sh "sleep 20"
+                        sh "sleep 60"
                         sh "source venv/bin/activate; python3 src/create-disease-tsv-df.py"
                         sh "docker rm -f reactome-neo4j-v${release_number}"
                         sh "mv disease_variant_ewas_mapping.tsv ${env.ABS_DOWNLOAD_PATH}/${release_number}/"
