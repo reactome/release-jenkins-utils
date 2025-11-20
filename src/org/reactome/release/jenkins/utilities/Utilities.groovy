@@ -220,10 +220,10 @@ def moveFilesToFolder(String folder, List files) {
     for (String file : files) {
         sh """
             src="${file}"
-            dest="${folder}/$(basename "${file}")"
+            dest="${folder}/\$(basename \"\${file}\")"
 
             # Only move if resolved (real) paths differ
-            if [ "\$(readlink -f "\$src")" != "\$(readlink -f "\$dest")" ]; then
+            if [ "\$(readlink -f \"\$src\")" != "\$(readlink -f \"\$dest\")" ]; then
                 mv --backup=numbered "\$src" "$folder"
             fi
         """
