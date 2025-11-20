@@ -218,7 +218,7 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
  */
 def moveFilesToFolder(String folder, List files) {
     for (String file : files) {
-        sh "mv --backup=numbered ${file} ${folder}"
+        sh "mv --backup=numbered -f ${file} ${folder}"
     }
 }
 
