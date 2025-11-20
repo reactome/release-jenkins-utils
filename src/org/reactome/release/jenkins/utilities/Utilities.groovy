@@ -218,17 +218,17 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
  */
 def moveFilesToFolder(String folder, List files) {
     for (String file : files) {
-        sh """
-            src="${file}"
-            dest="${folder}/\$(basename \"\${file}\")"
+        def base = file.tokenize('/').last()   // basename equivalent
+        def dest = "${folder}/${base}"
 
-            # Only move if resolved (real) paths differ
-            if [ "\$(readlink -f \"\$src\")" != "\$(readlink -f \"\$dest\")" ]; then
-                mv --backup=numbered "\$src" "$folder"
+        sh """
+            if [ "\$(readlink -f "${file}")" != "\$(readlink -f "${dest}")" ]; then
+                mv --backup=numbered -f "${file}" "${folder}"
             fi
         """
     }
 }
+
 
 /**
  * Helper method for recursively gzipping contents of a folder. Checks that file is populated before trying.
