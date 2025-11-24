@@ -218,8 +218,11 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
  */
 def moveFilesToFolder(String folder, List files) {
     for (def file : files) {
-        def path = file.path            // FileWrapper → String
-        def base = path.split("/")[-1]  // basename
+        def path = (file instanceof org.jenkinsci.plugins.pipeline.utility.steps.fs.FileWrapper) ?
+                       file.path :
+                       file.toString()
+    
+        def base = new File(path).getName()
         def dest = "${folder}/${base}"
     
         sh """
@@ -228,6 +231,8 @@ def moveFilesToFolder(String folder, List files) {
             fi
         """
     }
+
+    
 }
 
 
