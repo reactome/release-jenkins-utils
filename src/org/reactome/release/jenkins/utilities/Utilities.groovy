@@ -227,12 +227,10 @@ def moveFilesToFolder(String folder, List files) {
     
         sh """
             if [ "\$(readlink -f '${path}')" != "\$(readlink -f '${dest}')" ]; then
-                mv --backup=numbered -f '${path}' '${folder}'
+                mv --backup=numbered -f ${path} '${folder}'
             fi
         """
     }
-
-    
 }
 
 
