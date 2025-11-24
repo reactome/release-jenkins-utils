@@ -218,7 +218,7 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
  */
 def moveFilesToFolder(String folder, List files) {
     for (String file : files) {
-        def base = file.tokenize('/').last()   // basename equivalent
+        def base = "${file.name}"  // basename equivalent
         def dest = "${folder}/${base}"
 
         sh """
