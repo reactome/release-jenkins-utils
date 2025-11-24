@@ -217,13 +217,14 @@ def cleanUpAndArchiveBuildFiles(String stepName, List dataFiles, List logFiles, 
  * @param files - List of files to be moved to destination folder
  */
 def moveFilesToFolder(String folder, List files) {
-    for (String file : files) {
-        def base = file.split('/')[-1]  // basename
+    for (def file : files) {
+        def path = file.path            // FileWrapper → String
+        def base = path.split("/")[-1]  // basename
         def dest = "${folder}/${base}"
     
         sh """
-            if [ "\$(readlink -f '${file}')" != "\$(readlink -f '${dest}')" ]; then
-                mv --backup=numbered -f '${file}' '${folder}'
+            if [ "\$(readlink -f '${path}')" != "\$(readlink -f '${dest}')" ]; then
+                mv --backup=numbered -f '${path}' '${folder}'
             fi
         """
     }
