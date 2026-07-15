@@ -20,7 +20,7 @@ pipeline {
     agent any
 
     environment {
-        DOWNLOAD_BASE = "${env.REACTOME_DOWNLOAD_BASE}"
+        DOWNLOAD_BASE = "${env.ABS_DOWNLOAD_PATH}"
         ZIP_FILENAME   = 'reactome-download-directory.zip'
         ZENODO_RECORD  = '19581589'   // canonical record ID (never changes across versions)
         ZENODO_API     = 'https://zenodo.org/api'
