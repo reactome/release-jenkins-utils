@@ -1,0 +1,331 @@
+// Jenkinsfile: ZenodoRelease
+// Zips the Reactome versioned download directory (including synced S3 stats)
+// and publishes a new version of the Zenodo record.
+//
+// Prerequisites (configure once in Jenkins):
+//   - Credential 'zenodoApiToken'  → Secret text → your Zenodo personal access token
+//   - jq installed on the Jenkins agent (sudo apt-get install -y jq)
+//   - The Jenkins agent user must have AWS credentials
+
+import org.reactome.release.jenkins.utilities.Utilities
+
+def utils = new Utilities()
+
+// Script-scope variables shared across stages
+def releaseVersion   = ''
+def zenodoVersion    = ''
+def publicationDate  = ''
+
+pipeline {
+    agent any
+
+    environment {
+        DOWNLOAD_BASE = "${env.REACTOME_DOWNLOAD_BASE}"
+        ZIP_FILENAME   = 'reactome-download-directory.zip'
+        ZENODO_RECORD  = '19581589'   // canonical record ID (never changes across versions)
+        ZENODO_API     = 'https://zenodo.org/api'
+    }
+
+    stages {
+
+        // ── 1. Collect inputs ────────────────────────────────────────────────
+        stage('Setup: Collect release inputs') {
+            steps {
+                script {
+                    releaseVersion = utils.getReleaseVersion()
+
+                    def userInput = input(
+                        id: 'zenodoInput',
+                        message: "Publishing Reactome v${releaseVersion} download directory to Zenodo. Confirm details:",
+                        parameters: [
+                            string(
+                                defaultValue: "v${releaseVersion}",
+                                description:  'Version label that will appear on Zenodo (e.g. v96)',
+                                name:         'zenodoVersion'
+                            ),
+                            string(
+                                defaultValue: '',
+                                description:  'Publication date in YYYY-MM format (e.g. 2025-04)',
+                                name:         'publicationDate'
+                            )
+                        ]
+                    )
+
+                    zenodoVersion   = userInput.zenodoVersion   ?: "v${releaseVersion}"
+                    publicationDate = userInput.publicationDate ?: ''
+
+                    if (!publicationDate?.trim()) {
+                        error("Publication date is required (format: YYYY-MM)")
+                    }
+                    if (!(publicationDate ==~ /^\d{4}-\d{2}$/)) {
+                        error("Publication date '${publicationDate}' must be in YYYY-MM format")
+                    }
+
+                    echo "Release version : ${releaseVersion}"
+                    echo "Zenodo label    : ${zenodoVersion}"
+                    echo "Publication date: ${publicationDate}"
+                }
+            }
+        }
+
+        // ── 2. Sync stats from S3 into the versioned download folder ─────────
+        stage('Sync stats from S3') {
+            steps {
+                script {
+                    def statsDir = "${DOWNLOAD_BASE}/${releaseVersion}/stats"
+                    
+                    sh """
+                        mkdir -p ${statsDir}
+                        cd ${statsDir}
+                        aws s3 sync s3://download.reactome.org/${releaseVersion}/stats/ .
+                    """
+                }
+            }
+        }
+
+        ── 3. Zip the versioned download directory ──────────────────────────
+        stage('Zip download directory') {
+            steps {
+                script {
+                    def zipPath = "${DOWNLOAD_BASE}/${ZIP_FILENAME}"
+                    sh """
+                        # Remove any leftover zip from a previous run
+                        rm -f ${zipPath}
+                        cd ${DOWNLOAD_BASE}
+                        zip -r ${ZIP_FILENAME} ${releaseVersion}/
+                        echo "Created: ${zipPath}"
+                        ls -lh ${zipPath}
+                    """
+                }
+            }
+        }
+
+        // ── 4. Create a new Zenodo draft version ─────────────────────────────
+        stage('Zenodo: Create new version draft') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'zenodoApiToken', variable: 'ZENODO_TOKEN')]) {
+
+                        // POST /api/deposit/depositions/{id}/actions/newversion
+                        def newVersionJson = sh(
+                            script: """
+                                curl -sf -X POST \\
+                                    -H "Authorization: Bearer \$ZENODO_TOKEN" \\
+                                    "${ZENODO_API}/deposit/depositions/${ZENODO_RECORD}/actions/newversion"
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        // The response's links.latest_draft URL ends with the new draft ID
+                        def draftId = sh(
+                            script: "echo '${newVersionJson}' | jq -r '.links.latest_draft' | sed 's|.*/||'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (!draftId?.trim() || draftId == 'null') {
+                            error("Failed to extract draft ID from new-version response:\n${newVersionJson}")
+                        }
+
+                        env.ZENODO_DRAFT_ID = draftId
+                        echo "New Zenodo draft ID: ${draftId}"
+                    }
+                }
+            }
+        }
+
+        // ── 5. Delete files carried over from the previous version ───────────
+        stage('Zenodo: Remove old files from draft') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'zenodoApiToken', variable: 'ZENODO_TOKEN')]) {
+
+                        def filesJson = sh(
+                            script: """
+                                curl -sf \\
+                                    -H "Authorization: Bearer \$ZENODO_TOKEN" \\
+                                    "${ZENODO_API}/deposit/depositions/${env.ZENODO_DRAFT_ID}/files"
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        // Extract each file ID and delete it
+                        def fileIds = sh(
+                            script: "echo '${filesJson}' | jq -r '.[].id'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (fileIds) {
+                            fileIds.split('\n').each { fileId ->
+                                fileId = fileId.trim()
+                                if (fileId) {
+                                    sh """
+                                        curl -sf -X DELETE \\
+                                            -H "Authorization: Bearer \$ZENODO_TOKEN" \\
+                                            "${ZENODO_API}/deposit/depositions/${env.ZENODO_DRAFT_ID}/files/${fileId}"
+                                    """
+                                    echo "Deleted old file: ${fileId}"
+                                }
+                            }
+                        } else {
+                            echo "No existing files found in draft."
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── 6. Upload the zip ────────────────────────────────────────────────
+        stage('Zenodo: Upload zip file') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'zenodoApiToken', variable: 'ZENODO_TOKEN')]) {
+
+                        def zipPath = "${DOWNLOAD_BASE}/${ZIP_FILENAME}"
+
+                        // Get the S3-style bucket URL for this draft (fastest upload path)
+                        def depositionJson = sh(
+                            script: """
+                                curl -sf \\
+                                    -H "Authorization: Bearer \$ZENODO_TOKEN" \\
+                                    "${ZENODO_API}/deposit/depositions/${env.ZENODO_DRAFT_ID}"
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        def bucketUrl = sh(
+                            script: "echo '${depositionJson}' | jq -r '.links.bucket'",
+                            returnStdout: true
+                        ).trim()
+
+                        if (!bucketUrl?.trim() || bucketUrl == 'null') {
+                            error("Could not retrieve bucket URL for draft ${env.ZENODO_DRAFT_ID}")
+                        }
+
+                        echo "Uploading ${ZIP_FILENAME} to ${bucketUrl} ..."
+
+                        sh """
+                        curl -sf -X PUT \
+                            -H "Authorization: Bearer \$ZENODO_TOKEN" \
+                            -H "Content-Type: application/octet-stream" \
+                            --upload-file ${zipPath} \
+                            ${bucketUrl}/reactome-download-directory.zip
+                        """
+
+                        echo "Upload complete."
+                    }
+                }
+            }
+        }
+
+        // ── 7. Update version label and publication date in metadata ─────────
+        stage('Zenodo: Update metadata') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'zenodoApiToken', variable: 'ZENODO_TOKEN')]) {
+
+                        // Fetch current metadata so we only change version/publication_date
+                        def currentJson = sh(
+                            script: """
+                                curl -sf \\
+                                    -H "Authorization: Bearer \$ZENODO_TOKEN" \\
+                                    "${ZENODO_API}/deposit/depositions/${env.ZENODO_DRAFT_ID}"
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        // Use jq to patch just the two fields we need to change
+                        def updatedMetadata = sh(
+                            script: """
+                                echo '${currentJson}' | jq --arg v "${zenodoVersion}" \\
+                                    --arg d "${publicationDate}" \\
+                                    '{metadata: (.metadata | .version = \$v | .publication_date = \$d)}'
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        sh """
+                            curl -sf -X PUT \\
+                                -H "Authorization: Bearer \$ZENODO_TOKEN" \\
+                                -H "Content-Type: application/json" \\
+                                -d '${updatedMetadata}' \\
+                                "${ZENODO_API}/deposit/depositions/${env.ZENODO_DRAFT_ID}"
+                        """
+
+                        echo "Metadata updated — version: ${zenodoVersion}, publication_date: ${publicationDate}"
+                    }
+                }
+            }
+        }
+
+        // ── 8. Manual gate before publishing ────────────────────────────────
+        stage('Confirm: Publish to Zenodo') {
+            steps {
+                script {
+                    def draftUrl = "https://zenodo.org/deposit/${env.ZENODO_DRAFT_ID}"
+                    input(
+                        message: """Ready to publish Zenodo draft ${env.ZENODO_DRAFT_ID}?
+
+Please review the draft before confirming:
+  ${draftUrl}
+
+This action is irreversible — the record will be made public immediately.""",
+                        ok: 'Publish'
+                    )
+                }
+            }
+        }
+
+        // ── 9. Publish ───────────────────────────────────────────────────────
+        stage('Zenodo: Publish record') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'zenodoApiToken', variable: 'ZENODO_TOKEN')]) {
+
+                        def publishResponse = sh(
+                            script: """
+                                curl -sf -X POST \\
+                                    -H "Authorization: Bearer \$ZENODO_TOKEN" \\
+                                    -H "Content-Type: application/json" \\
+                                    "${ZENODO_API}/deposit/depositions/${env.ZENODO_DRAFT_ID}/actions/publish"
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        def doi = sh(
+                            script: "echo '${publishResponse}' | jq -r '.doi // .metadata.doi // \"(check Zenodo)\"'",
+                            returnStdout: true
+                        ).trim()
+
+                        echo "✅ Published! DOI: ${doi}"
+                        echo "Record: https://zenodo.org/records/${ZENODO_RECORD}"
+                    }
+                }
+            }
+        }
+
+        // ── 10. Cleanup ──────────────────────────────────────────────────────
+        stage('Cleanup: Remove local zip') {
+            steps {
+                sh "rm -f ${DOWNLOAD_BASE}/${ZIP_FILENAME}"
+                echo "Removed local zip file."
+            }
+        }
+    }
+
+    post {
+        failure {
+            script {
+                def draftId = env.ZENODO_DRAFT_ID ?: '(not yet created)'
+                echo """
+Pipeline failed.
+If a Zenodo draft was created (ID: ${draftId}), it has NOT been published
+and can be reviewed or deleted at: https://zenodo.org/deposit/${draftId}
+The local zip file may still exist at: ${DOWNLOAD_BASE}/${ZIP_FILENAME}
+"""
+            }
+        }
+        success {
+            echo "Zenodo release pipeline completed successfully."
+        }
+    }
+}
