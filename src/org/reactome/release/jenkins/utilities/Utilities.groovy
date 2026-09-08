@@ -85,6 +85,122 @@ def takeDatabaseDump(String databaseName, String databaseFilename, String databa
 }
 
 /**
+ * Helper method for reading the curator graph database server's configuration from the environment.
+ * The details of the server are held in Jenkins rather than in any repository, under
+ * Manage Jenkins -> System -> Global properties -> Environment variables. An error will be thrown if any
+ * of the CURATOR_GRAPH_* variables has no value.
+ * @return - Map of the curator graph server's configuration, as taken by the other curator graph methods.
+ */
+def getCuratorGraphConfig() {
+    def config = [
+        server: env.CURATOR_GRAPH_SERVER,                             // host to SSH into
+        sshUser: env.CURATOR_GRAPH_SSH_USER,                          // account the pipeline acts as
+        sshCredentialsId: env.CURATOR_GRAPH_SSH_CREDENTIALS_ID,       // 'SSH Username with private key' credential
+        neo4jUser: env.CURATOR_GRAPH_NEO4J_USER,                      // account that owns the Neo4j installation
+        neo4jBin: env.CURATOR_GRAPH_NEO4J_BIN,                        // 'bin' directory of the Neo4j installation
+        database: env.CURATOR_GRAPH_DB,                               // Neo4j database to dump
+        dumpDir: env.CURATOR_GRAPH_DUMP_DIR,                          // scratch directory for dumps on that server
+        curatorToolApiURL: env.CURATOR_GRAPH_CURATOR_TOOL_API_URL     // Curator Tool web service base URL
+    ]
+
+    def unset = []
+    for (def property : config) {
+        if (!property.value) {
+            unset.add(property.key)
+        }
+    }
+    if (unset) {
+        error("Curator graph server configuration is incomplete -- no value for ${unset.join(', ')}. " +
+            "These are read from the CURATOR_GRAPH_* environment variables under " +
+            "Manage Jenkins -> System -> Global properties -> Environment variables.")
+    }
+
+    return config
+}
+
+/**
+ * Helper method for getting the name of a curator graph database dump file.
+ * @param config - Map of the curator graph server's configuration, as returned by getCuratorGraphConfig
+ * @param stepName - Name of release step currently being run
+ * @param beforeOrAfter - Either 'before' or 'after' strings, denoting when the dump is being taken in the process.
+ * @return - String, name of the dump file (eg: gk_central_update_dois_before_v95.dump)
+ */
+def getCuratorGraphDumpFileName(Map config, String stepName, String beforeOrAfter) {
+    return "${config.database}_${stepName}_${beforeOrAfter}_v${getReleaseVersion()}.dump"
+}
+
+/**
+ * Helper method for getting the name of a gzipped curator graph database dump file, as produced by
+ * backUpCuratorGraphDatabase.
+ * @param config - Map of the curator graph server's configuration, as returned by getCuratorGraphConfig
+ * @param stepName - Name of release step currently being run
+ * @param beforeOrAfter - Either 'before' or 'after' strings, denoting when the dump is being taken in the process.
+ * @return - String, name of the gzipped dump file (eg: gk_central_update_dois_before_v95.dump.gz)
+ */
+def getGzippedCuratorGraphDumpFileName(Map config, String stepName, String beforeOrAfter) {
+    return getCuratorGraphDumpFileName(config, stepName, beforeOrAfter) + ".gz"
+}
+
+/**
+ * Helper method for backing up the curator graph database. It stops Neo4j on the curator graph server, dumps its
+ * database, restarts Neo4j, then copies the gzipped dump back into the Jenkins workspace so it is archived along
+ * with the rest of the build files. Neo4j on that server is a tarball install with no system-wide 'neo4j' service,
+ * so it is controlled through the scripts bundled in the installation's 'bin' directory, which the SSH user runs
+ * via passwordless sudo.
+ * @param config - Map of the curator graph server's configuration, as returned by getCuratorGraphConfig
+ * @param stepName - Name of release step currently being run
+ * @param beforeOrAfter - Either 'before' or 'after' strings, denoting when the dump is being taken in the process.
+ * @return - String, name of the gzipped dump file copied into the Jenkins workspace
+ */
+def backUpCuratorGraphDatabase(Map config, String stepName, String beforeOrAfter) {
+    def remote = "${config.sshUser}@${config.server}"
+    // StrictHostKeyChecking=yes fails closed if the server's key is not already trusted, rather than
+    // accepting whatever answers to that name. Seed it once on the Jenkins agent with:
+    //   ssh-keyscan -H <CURATOR_GRAPH_SERVER> >> ~/.ssh/known_hosts
+    def ssh = "ssh -o StrictHostKeyChecking=yes ${remote}"
+    def dumpFile = getCuratorGraphDumpFileName(config, stepName, beforeOrAfter)
+    def remoteDump = "${config.dumpDir}/${dumpFile}"
+
+    // The Neo4j scripts run as the account that owns the installation, not as root -- 'neo4j start' as
+    // root would leave the store and log files owned by root and run the server itself with full
+    // privilege. This needs a NOPASSWD sudoers rule for those two binaries and that target user.
+    def neo4j = "sudo -u ${config.neo4jUser} ${config.neo4jBin}"
+
+    sshagent([config.sshCredentialsId]) {
+        def dumpDirStatus = sh(
+            script: "${ssh} 'stat -c \"%U %a\" ${config.dumpDir} 2>/dev/null || true'",
+            returnStdout: true
+        ).trim()
+        if (dumpDirStatus != "${config.sshUser} 700") {
+            error("The dump directory ${config.dumpDir} on ${config.server} must exist, be owned by " +
+                "${config.sshUser} and be mode 700, but is '${dumpDirStatus ?: 'missing'}'. Create it with: " +
+                "mkdir -p ${config.dumpDir}; chown ${config.sshUser} ${config.dumpDir}; chmod 700 ${config.dumpDir}")
+        }
+
+        try {
+            // neo4j-admin dump requires the database to be offline. 'neo4j stop' blocks until shutdown
+            // completes, and is a no-op (with a non-zero exit code) if Neo4j is already down.
+            sh "${ssh} '${neo4j}/neo4j stop' || true"
+            sh "${ssh} '${neo4j}/neo4j status | grep -q \"not running\"'"
+
+            // The dump directory is owned by the SSH user, so the gzip and rm below can run without
+            // sudo even though the dump file itself is written by the Neo4j account.
+            sh "${ssh} 'rm -f ${remoteDump} ${remoteDump}.gz'"
+            sh "${ssh} '${neo4j}/neo4j-admin dump --database=${config.database} --to=${remoteDump}'"
+            sh "${ssh} 'gzip -f ${remoteDump}'"
+        } finally {
+            // Always bring Neo4j back up, even if the dump failed.
+            sh "${ssh} '${neo4j}/neo4j start'"
+        }
+
+        sh "scp -o StrictHostKeyChecking=yes ${remote}:${remoteDump}.gz ."
+        sh "${ssh} 'rm -f ${remoteDump}.gz'"
+    }
+
+    return "${dumpFile}.gz"
+}
+
+/**
  * Method for storing a graph database folder into a tar archive.
  * @param graphDbFolder - String, name of graph db folder being archived
  * @param stepName - String, name of step that is being run currently. The archive will use it in its name.
