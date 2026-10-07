@@ -164,7 +164,7 @@ def backUpCuratorGraphDatabase(Map config, String stepName, String beforeOrAfter
     // The Neo4j scripts run as the account that owns the installation, not as root -- 'neo4j start' as
     // root would leave the store and log files owned by root and run the server itself with full
     // privilege. This needs a NOPASSWD sudoers rule for those two binaries and that target user.
-    def neo4j = "sudo -u ${config.neo4jUser} ${config.neo4jBin}"
+    def neo4j = "sudo ${config.neo4jBin}"
 
     sshagent([config.sshCredentialsId]) {
         def dumpDirStatus = sh(
